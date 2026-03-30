@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+
+# Playwright
+test-results/
+playwright-report/
+
+# Cache
+.cache/
+node_modules/.cache/
+
+# Secrets
+credentials.json
+secrets.yml
+*.pem
+*.key
+*.p12
+*.pfx
