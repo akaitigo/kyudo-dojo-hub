@@ -5,6 +5,7 @@ const navItems = [
 	{ to: "/practices", label: "稽古日誌" },
 	{ to: "/video-analysis", label: "動画分析" },
 	{ to: "/exam-checklist", label: "審査チェック" },
+	{ to: "/dashboard", label: "道場管理" },
 ] as const;
 
 export function AppLayout() {

@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
+import { DashboardPage } from "@/pages/DashboardPage";
 import { ExamChecklistPage } from "@/pages/ExamChecklistPage";
 import { HomePage } from "@/pages/HomePage";
 import { PracticesPage } from "@/pages/PracticesPage";
@@ -16,8 +17,9 @@ if (rootElement) {
 					<Route element={<AppLayout />}>
 						<Route index element={<HomePage />} />
 						<Route path="practices" element={<PracticesPage />} />
-						<Route path="exam-checklist" element={<ExamChecklistPage />} />
 						<Route path="video-analysis" element={<VideoAnalysisPage />} />
+						<Route path="exam-checklist" element={<ExamChecklistPage />} />
+						<Route path="dashboard" element={<DashboardPage />} />
 					</Route>
 				</Routes>
 			</BrowserRouter>

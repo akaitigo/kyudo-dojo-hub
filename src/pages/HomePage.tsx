@@ -22,6 +22,9 @@ export function HomePage() {
 				<Link to="/exam-checklist" style={{ fontSize: "1.1rem" }}>
 					段位審査チェックリスト
 				</Link>
+				<Link to="/dashboard" style={{ fontSize: "1.1rem" }}>
+					道場管理ダッシュボード
+				</Link>
 			</nav>
 		</div>
 	);
