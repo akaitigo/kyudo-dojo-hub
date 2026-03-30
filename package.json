@@ -17,7 +17,7 @@
 		"preview": "vite preview"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.0",
+		"@biomejs/biome": "^2.4.9",
 		"@playwright/test": "^1.48.0",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
