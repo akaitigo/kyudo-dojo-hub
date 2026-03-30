@@ -3,6 +3,7 @@ import { NavLink, Outlet } from "react-router";
 const navItems = [
 	{ to: "/", label: "ホーム" },
 	{ to: "/practices", label: "稽古日誌" },
+	{ to: "/video-analysis", label: "動画分析" },
 	{ to: "/exam-checklist", label: "審査チェック" },
 ] as const;
 

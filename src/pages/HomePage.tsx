@@ -16,6 +16,9 @@ export function HomePage() {
 				<Link to="/practices" style={{ fontSize: "1.1rem" }}>
 					稽古日誌
 				</Link>
+				<Link to="/video-analysis" style={{ fontSize: "1.1rem" }}>
+					射形動画分析
+				</Link>
 				<Link to="/exam-checklist" style={{ fontSize: "1.1rem" }}>
 					段位審査チェックリスト
 				</Link>
