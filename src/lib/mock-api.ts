@@ -263,13 +263,14 @@ export interface CreateReservationInput {
 export async function createReservation(input: CreateReservationInput): Promise<ApiResult<Reservation>> {
 	await simulateLatency();
 
-	// 重複チェック
+	// 重複チェック（時間帯の重なり判定: start_a < end_b AND start_b < end_a）
 	const conflict = reservations.find(
 		(r) =>
 			r.dojoId === input.dojoId &&
 			r.laneNumber === input.laneNumber &&
 			r.date === input.date &&
-			r.startTime === input.startTime,
+			r.startTime < input.endTime &&
+			input.startTime < r.endTime,
 	);
 	if (conflict) {
 		return validationError("同一的場・同一時間帯に既に予約があります");

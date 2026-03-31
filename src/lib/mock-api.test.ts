@@ -243,6 +243,170 @@ describe("モック API", () => {
 			const result = await getReservation("res-002");
 			expect(result.success).toBe(true);
 		});
+
+		describe("時間帯重複チェック", () => {
+			// テスト用に衝突しない道場・レーン・日付を使い、テスト間の干渉を避ける
+			const base = {
+				dojoId: "dojo-overlap-test",
+				userId: "user-001",
+				laneNumber: 99,
+				date: "2099-12-31",
+			} as const;
+
+			it("部分重複（後ろにずれ）を拒否する", async () => {
+				// 10:00-11:00 を登録
+				const first = await createReservation({
+					...base,
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(first.success).toBe(true);
+
+				// 10:30-11:30 は 10:00-11:00 と重なるため拒否される
+				const second = await createReservation({
+					...base,
+					startTime: "10:30",
+					endTime: "11:30",
+				});
+				expect(second.success).toBe(false);
+				if (!second.success) {
+					expect(second.error.code).toBe("VALIDATION_ERROR");
+				}
+			});
+
+			it("部分重複（前にずれ）を拒否する", async () => {
+				const first = await createReservation({
+					...base,
+					laneNumber: 98,
+					startTime: "14:00",
+					endTime: "15:00",
+				});
+				expect(first.success).toBe(true);
+
+				// 13:30-14:30 は 14:00-15:00 と重なるため拒否される
+				const second = await createReservation({
+					...base,
+					laneNumber: 98,
+					startTime: "13:30",
+					endTime: "14:30",
+				});
+				expect(second.success).toBe(false);
+			});
+
+			it("完全包含（既存が新規を包む）を拒否する", async () => {
+				const first = await createReservation({
+					...base,
+					laneNumber: 97,
+					startTime: "09:00",
+					endTime: "12:00",
+				});
+				expect(first.success).toBe(true);
+
+				// 10:00-11:00 は 09:00-12:00 に完全に含まれるため拒否される
+				const second = await createReservation({
+					...base,
+					laneNumber: 97,
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(second.success).toBe(false);
+			});
+
+			it("完全包含（新規が既存を包む）を拒否する", async () => {
+				const first = await createReservation({
+					...base,
+					laneNumber: 96,
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(first.success).toBe(true);
+
+				// 09:00-12:00 は 10:00-11:00 を完全に包むため拒否される
+				const second = await createReservation({
+					...base,
+					laneNumber: 96,
+					startTime: "09:00",
+					endTime: "12:00",
+				});
+				expect(second.success).toBe(false);
+			});
+
+			it("完全一致の時間帯を拒否する", async () => {
+				const first = await createReservation({
+					...base,
+					laneNumber: 95,
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(first.success).toBe(true);
+
+				const second = await createReservation({
+					...base,
+					laneNumber: 95,
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(second.success).toBe(false);
+			});
+
+			it("隣接する時間帯（終了=開始）は許可する", async () => {
+				const first = await createReservation({
+					...base,
+					laneNumber: 94,
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(first.success).toBe(true);
+
+				// 11:00-12:00 は 10:00-11:00 の直後なので許可される
+				const second = await createReservation({
+					...base,
+					laneNumber: 94,
+					startTime: "11:00",
+					endTime: "12:00",
+				});
+				expect(second.success).toBe(true);
+			});
+
+			it("異なるレーンなら同時間帯でも許可する", async () => {
+				const first = await createReservation({
+					...base,
+					laneNumber: 93,
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(first.success).toBe(true);
+
+				// 別レーン（92番）なので同じ時間帯でも許可される
+				const second = await createReservation({
+					...base,
+					laneNumber: 92,
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(second.success).toBe(true);
+			});
+
+			it("異なる日付なら同時間帯・同レーンでも許可する", async () => {
+				const first = await createReservation({
+					...base,
+					laneNumber: 91,
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(first.success).toBe(true);
+
+				// 異なる日付なので許可される
+				const second = await createReservation({
+					...base,
+					laneNumber: 91,
+					date: "2099-12-30",
+					startTime: "10:00",
+					endTime: "11:00",
+				});
+				expect(second.success).toBe(true);
+			});
+		});
 	});
 
 	describe("ExamChecklists", () => {
