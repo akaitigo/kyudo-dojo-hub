@@ -32,6 +32,23 @@ make check
 2. 稽古日誌（的中率、気づき、師範コメント）と段位審査チェックリスト管理
 3. 道場向け的場予約カレンダーと会員管理ダッシュボード
 
+## アーキテクチャ
+
+```
+React SPA (Vite) --> Go API (gRPC/REST) --> PostgreSQL / Redis
+                          |
+                          v
+                  Python MediaPipe Worker (非同期)
+                          |
+                          v
+                  GCP Cloud Storage (動画)
+```
+
+- フロントエンド: React SPA がユーザー操作と可視化を担当
+- API層: Go gRPC サーバーが REST gateway 経由でフロントエンドと通信
+- ML Worker: MediaPipe による骨格推定を非同期で処理
+- ストレージ: 動画は GCP Cloud Storage、メタデータは PostgreSQL に保存
+
 ## ライセンス
 
 MIT
