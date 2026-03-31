@@ -1,6 +1,6 @@
-import { DAN_LABELS, DAN_RANKS, SHOGO_LABELS } from "@/types/domain";
-import type { User } from "@/types/domain";
 import { useState } from "react";
+import type { User } from "@/types/domain";
+import { DAN_LABELS, DAN_RANKS, SHOGO_LABELS } from "@/types/domain";
 
 interface MemberListProps {
 	readonly members: readonly User[];

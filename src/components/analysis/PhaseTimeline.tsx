@@ -1,5 +1,5 @@
-import { HASSETSU_LABELS } from "@/types/domain";
 import type { PhaseSegment } from "@/types/domain";
+import { HASSETSU_LABELS } from "@/types/domain";
 
 interface PhaseTimelineProps {
 	readonly phases: readonly PhaseSegment[];

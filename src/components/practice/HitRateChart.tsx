@@ -1,5 +1,5 @@
-import type { Practice } from "@/types/domain";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { Practice } from "@/types/domain";
 
 interface HitRateChartProps {
 	readonly practices: readonly Practice[];
