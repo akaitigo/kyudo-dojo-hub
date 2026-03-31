@@ -1,6 +1,6 @@
-import { type PracticeFormValues, practiceFormSchema } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type FieldErrors, useForm } from "react-hook-form";
+import { type PracticeFormValues, practiceFormSchema } from "@/lib/validation";
 
 interface PracticeFormProps {
 	readonly onSubmit: (values: PracticeFormValues) => void;

@@ -1,5 +1,5 @@
-import { validateVideoFile } from "@/lib/video-validation";
 import { useCallback, useRef, useState } from "react";
+import { validateVideoFile } from "@/lib/video-validation";
 
 interface VideoUploaderProps {
 	readonly onUpload: (file: File, objectUrl: string) => void;

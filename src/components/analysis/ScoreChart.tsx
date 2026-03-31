@@ -1,6 +1,6 @@
-import { HASSETSU_LABELS, HASSETSU_PHASES } from "@/types/domain";
-import type { HassetsuScores } from "@/types/domain";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { HassetsuScores } from "@/types/domain";
+import { HASSETSU_LABELS, HASSETSU_PHASES } from "@/types/domain";
 
 interface ScoreChartProps {
 	readonly scores: HassetsuScores;

@@ -1,9 +1,9 @@
+import { useCallback, useRef, useState } from "react";
 import { PhaseTimeline } from "@/components/analysis/PhaseTimeline";
 import { ScoreChart } from "@/components/analysis/ScoreChart";
 import { VideoUploader } from "@/components/video/VideoUploader";
 import { MOCK_ANALYSES } from "@/lib/mock-data";
 import type { Analysis } from "@/types/domain";
-import { useCallback, useRef, useState } from "react";
 
 export function VideoAnalysisPage() {
 	const [videoUrl, setVideoUrl] = useState<string | null>(null);

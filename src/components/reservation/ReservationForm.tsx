@@ -1,7 +1,7 @@
-import { type ReservationFormValues, generateTimeSlots, reservationFormSchema } from "@/lib/reservation-validation";
-import type { Dojo } from "@/types/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { generateTimeSlots, type ReservationFormValues, reservationFormSchema } from "@/lib/reservation-validation";
+import type { Dojo } from "@/types/domain";
 
 interface ReservationFormProps {
 	readonly dojo: Dojo;
