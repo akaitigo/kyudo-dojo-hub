@@ -26,6 +26,7 @@ export function DashboardPage() {
 	const [summary, setSummary] = useState<DashboardSummary | null>(null);
 	const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0] ?? "");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [reservationError, setReservationError] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState<"calendar" | "members">("calendar");
 
 	const loadData = useCallback(async () => {
@@ -48,7 +49,8 @@ export function DashboardPage() {
 
 	const handleCreateReservation = async (values: ReservationFormValues) => {
 		setIsSubmitting(true);
-		await createReservation({
+		setReservationError(null);
+		const result = await createReservation({
 			dojoId: CURRENT_DOJO_ID,
 			userId: CURRENT_USER_ID,
 			laneNumber: values.laneNumber,
@@ -57,6 +59,10 @@ export function DashboardPage() {
 			endTime: getEndTime(values.startTime),
 		});
 		setIsSubmitting(false);
+		if (!result.success) {
+			setReservationError(result.error.message);
+			return;
+		}
 		await loadData();
 	};
 
@@ -139,6 +145,11 @@ export function DashboardPage() {
 					<>
 						<section style={{ marginBottom: "1.5rem" }}>
 							<h2>新規予約</h2>
+							{reservationError && (
+								<p role="alert" style={{ color: "#d32f2f", marginBottom: "0.5rem" }}>
+									{reservationError}
+								</p>
+							)}
 							<ReservationForm dojo={dojo} onSubmit={handleCreateReservation} isSubmitting={isSubmitting} />
 						</section>
 
