@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PhaseTimeline } from "@/components/analysis/PhaseTimeline";
 import { ScoreChart } from "@/components/analysis/ScoreChart";
 import { VideoUploader } from "@/components/video/VideoUploader";
@@ -10,6 +10,20 @@ export function VideoAnalysisPage() {
 	const [analysis, setAnalysis] = useState<Analysis | null>(null);
 	const [currentTime, setCurrentTime] = useState(0);
 	const videoRef = useRef<HTMLVideoElement>(null);
+
+	// Revoke the previous Object URL when videoUrl changes or on unmount
+	const prevVideoUrlRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (prevVideoUrlRef.current && prevVideoUrlRef.current !== videoUrl) {
+			URL.revokeObjectURL(prevVideoUrlRef.current);
+		}
+		prevVideoUrlRef.current = videoUrl;
+		return () => {
+			if (prevVideoUrlRef.current) {
+				URL.revokeObjectURL(prevVideoUrlRef.current);
+			}
+		};
+	}, [videoUrl]);
 
 	const handleUpload = useCallback((_file: File, objectUrl: string) => {
 		setVideoUrl(objectUrl);

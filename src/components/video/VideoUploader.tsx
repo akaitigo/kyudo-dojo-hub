@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { validateVideoFile } from "@/lib/video-validation";
 
 interface VideoUploaderProps {
@@ -10,6 +10,23 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 	const [error, setError] = useState<string | null>(null);
 	const [progress, setProgress] = useState<number | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		return () => {
+			if (intervalRef.current !== null) {
+				clearInterval(intervalRef.current);
+			}
+			if (completionTimerRef.current !== null) {
+				clearTimeout(completionTimerRef.current);
+			}
+			if (resetTimerRef.current !== null) {
+				clearTimeout(resetTimerRef.current);
+			}
+		};
+	}, []);
 
 	const processFile = useCallback(
 		(file: File) => {
@@ -20,24 +37,41 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 				return;
 			}
 
+			// Clear any previous timers
+			if (intervalRef.current !== null) {
+				clearInterval(intervalRef.current);
+			}
+			if (completionTimerRef.current !== null) {
+				clearTimeout(completionTimerRef.current);
+			}
+			if (resetTimerRef.current !== null) {
+				clearTimeout(resetTimerRef.current);
+			}
+
 			// Simulate upload progress
 			setProgress(0);
-			const interval = setInterval(() => {
+			intervalRef.current = setInterval(() => {
 				setProgress((prev) => {
 					if (prev === null || prev >= 100) {
-						clearInterval(interval);
+						if (intervalRef.current !== null) {
+							clearInterval(intervalRef.current);
+							intervalRef.current = null;
+						}
 						return 100;
 					}
 					return prev + 10;
 				});
 			}, 100);
 
-			setTimeout(() => {
-				clearInterval(interval);
+			completionTimerRef.current = setTimeout(() => {
+				if (intervalRef.current !== null) {
+					clearInterval(intervalRef.current);
+					intervalRef.current = null;
+				}
 				setProgress(100);
 				const objectUrl = URL.createObjectURL(file);
 				onUpload(file, objectUrl);
-				setTimeout(() => setProgress(null), 500);
+				resetTimerRef.current = setTimeout(() => setProgress(null), 500);
 			}, 1100);
 		},
 		[onUpload],
