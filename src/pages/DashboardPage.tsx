@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MemberList } from "@/components/member/MemberList";
 import { ReservationCalendar } from "@/components/reservation/ReservationCalendar";
 import { ReservationForm } from "@/components/reservation/ReservationForm";
+import { getLocalDateString } from "@/lib/date-utils";
 import type { DashboardSummary } from "@/lib/mock-api";
 import {
 	createReservation,
@@ -24,7 +25,7 @@ export function DashboardPage() {
 	const [reservations, setReservations] = useState<readonly Reservation[]>([]);
 	const [members, setMembers] = useState<readonly User[]>([]);
 	const [summary, setSummary] = useState<DashboardSummary | null>(null);
-	const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0] ?? "");
+	const [selectedDate, setSelectedDate] = useState(getLocalDateString());
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [reservationError, setReservationError] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState<"calendar" | "members">("calendar");

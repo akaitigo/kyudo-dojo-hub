@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type FieldErrors, useForm } from "react-hook-form";
+import { getLocalDateString } from "@/lib/date-utils";
 import { type PracticeFormValues, practiceFormSchema } from "@/lib/validation";
 
 interface PracticeFormProps {
@@ -15,7 +16,7 @@ export function PracticeForm({ onSubmit, isSubmitting = false }: PracticeFormPro
 	} = useForm({
 		resolver: zodResolver(practiceFormSchema),
 		defaultValues: {
-			date: new Date().toISOString().split("T")[0] ?? "",
+			date: getLocalDateString(),
 			hitRate: 0,
 			arrowCount: 1,
 			notes: "",

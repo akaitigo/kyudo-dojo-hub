@@ -5,6 +5,7 @@
  * 本番 API と同じインターフェースを持ち、将来の差し替えを容易にする。
  * 意図的な遅延（50-200ms）を追加し、非同期UIの動作確認を可能にする。
  */
+import { getLocalDateString } from "@/lib/date-utils";
 import type { Analysis, ApiResult, Dojo, ExamChecklist, Practice, Reservation, User, Video } from "@/types/domain";
 import {
 	MOCK_ANALYSES,
@@ -359,7 +360,7 @@ export interface DashboardSummary {
 
 export async function getDashboardSummary(dojoId: string): Promise<ApiResult<DashboardSummary>> {
 	await simulateLatency();
-	const today = new Date().toISOString().split("T")[0] ?? "";
+	const today = getLocalDateString();
 	const todayReservations = reservations.filter((r) => r.dojoId === dojoId && r.date === today);
 	const memberCount = users.filter((u) => u.dojoId === dojoId).length;
 

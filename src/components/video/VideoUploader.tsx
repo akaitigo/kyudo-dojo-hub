@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { validateVideoFile } from "@/lib/video-validation";
+import { validateVideoDuration, validateVideoFile } from "@/lib/video-validation";
 
 interface VideoUploaderProps {
 	readonly onUpload: (file: File, objectUrl: string) => void;
@@ -28,15 +28,8 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 		};
 	}, []);
 
-	const processFile = useCallback(
+	const startUpload = useCallback(
 		(file: File) => {
-			setError(null);
-			const validation = validateVideoFile(file);
-			if (!validation.valid) {
-				setError(validation.error ?? "不正なファイルです");
-				return;
-			}
-
 			// Clear any previous timers
 			if (intervalRef.current !== null) {
 				clearInterval(intervalRef.current);
@@ -75,6 +68,37 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 			}, 1100);
 		},
 		[onUpload],
+	);
+
+	const processFile = useCallback(
+		(file: File) => {
+			setError(null);
+			const validation = validateVideoFile(file);
+			if (!validation.valid) {
+				setError(validation.error ?? "不正なファイルです");
+				return;
+			}
+
+			// Check video duration via metadata
+			const video = document.createElement("video");
+			video.preload = "metadata";
+			const tempUrl = URL.createObjectURL(file);
+			video.onloadedmetadata = () => {
+				URL.revokeObjectURL(tempUrl);
+				const durationCheck = validateVideoDuration(video.duration);
+				if (!durationCheck.valid) {
+					setError(durationCheck.error ?? "不正な動画です");
+					return;
+				}
+				startUpload(file);
+			};
+			video.onerror = () => {
+				URL.revokeObjectURL(tempUrl);
+				setError("動画メタデータの読み込みに失敗しました");
+			};
+			video.src = tempUrl;
+		},
+		[startUpload],
 	);
 
 	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

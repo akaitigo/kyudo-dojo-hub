@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { getLocalDateString } from "@/lib/date-utils";
 import { generateTimeSlots, type ReservationFormValues, reservationFormSchema } from "@/lib/reservation-validation";
 import type { Dojo } from "@/types/domain";
 
@@ -17,7 +18,7 @@ export function ReservationForm({ dojo, onSubmit, isSubmitting = false }: Reserv
 	} = useForm({
 		resolver: zodResolver(reservationFormSchema),
 		defaultValues: {
-			date: new Date().toISOString().split("T")[0] ?? "",
+			date: getLocalDateString(),
 			startTime: "",
 			laneNumber: 1,
 		},

@@ -25,12 +25,19 @@ export function VideoAnalysisPage() {
 		};
 	}, [videoUrl]);
 
-	const handleUpload = useCallback((_file: File, objectUrl: string) => {
+	const handleUpload = useCallback((file: File, objectUrl: string) => {
 		setVideoUrl(objectUrl);
-		// MVP: モック分析結果を使用
-		const mockAnalysis = MOCK_ANALYSES[0];
-		if (mockAnalysis) {
-			setAnalysis(mockAnalysis);
+		// MVP: ファイル名ベースでモック分析結果を選択（異なる動画に異なる結果）
+		if (MOCK_ANALYSES.length > 0) {
+			let hash = 0;
+			for (let i = 0; i < file.name.length; i++) {
+				hash = (hash * 31 + file.name.charCodeAt(i)) | 0;
+			}
+			const index = Math.abs(hash) % MOCK_ANALYSES.length;
+			const mockAnalysis = MOCK_ANALYSES[index];
+			if (mockAnalysis) {
+				setAnalysis(mockAnalysis);
+			}
 		}
 	}, []);
 

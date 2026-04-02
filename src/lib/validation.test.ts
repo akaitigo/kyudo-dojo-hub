@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { getLocalDateString } from "./date-utils";
 import { practiceFormSchema } from "./validation";
 
 describe("practiceFormSchema", () => {
 	it("有効な入力を受け付ける", () => {
 		const result = practiceFormSchema.safeParse({
-			date: new Date().toISOString().split("T")[0],
+			date: getLocalDateString(),
 			hitRate: 65,
 			arrowCount: 40,
 			notes: "テスト",
@@ -26,7 +27,7 @@ describe("practiceFormSchema", () => {
 
 	it("的中率 101 を拒否する", () => {
 		const result = practiceFormSchema.safeParse({
-			date: new Date().toISOString().split("T")[0],
+			date: getLocalDateString(),
 			hitRate: 101,
 			arrowCount: 40,
 			notes: "",
@@ -37,7 +38,7 @@ describe("practiceFormSchema", () => {
 
 	it("的中率 -1 を拒否する", () => {
 		const result = practiceFormSchema.safeParse({
-			date: new Date().toISOString().split("T")[0],
+			date: getLocalDateString(),
 			hitRate: -1,
 			arrowCount: 40,
 			notes: "",
@@ -48,7 +49,7 @@ describe("practiceFormSchema", () => {
 
 	it("矢数 0 を拒否する", () => {
 		const result = practiceFormSchema.safeParse({
-			date: new Date().toISOString().split("T")[0],
+			date: getLocalDateString(),
 			hitRate: 50,
 			arrowCount: 0,
 			notes: "",
@@ -59,7 +60,7 @@ describe("practiceFormSchema", () => {
 
 	it("矢数 1001 を拒否する", () => {
 		const result = practiceFormSchema.safeParse({
-			date: new Date().toISOString().split("T")[0],
+			date: getLocalDateString(),
 			hitRate: 50,
 			arrowCount: 1001,
 			notes: "",
@@ -70,7 +71,7 @@ describe("practiceFormSchema", () => {
 
 	it("5001文字の気づきを拒否する", () => {
 		const result = practiceFormSchema.safeParse({
-			date: new Date().toISOString().split("T")[0],
+			date: getLocalDateString(),
 			hitRate: 50,
 			arrowCount: 40,
 			notes: "a".repeat(5001),
@@ -81,7 +82,7 @@ describe("practiceFormSchema", () => {
 
 	it("5000文字の気づきを受け付ける", () => {
 		const result = practiceFormSchema.safeParse({
-			date: new Date().toISOString().split("T")[0],
+			date: getLocalDateString(),
 			hitRate: 50,
 			arrowCount: 40,
 			notes: "a".repeat(5000),
