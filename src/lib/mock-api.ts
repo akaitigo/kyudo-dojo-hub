@@ -261,8 +261,20 @@ export interface CreateReservationInput {
 	readonly endTime: string;
 }
 
+const HH_MM_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 export async function createReservation(input: CreateReservationInput): Promise<ApiResult<Reservation>> {
 	await simulateLatency();
+
+	// HH:mm 形式バリデーション
+	if (!(HH_MM_PATTERN.test(input.startTime) && HH_MM_PATTERN.test(input.endTime))) {
+		return validationError("時間は HH:mm 形式で入力してください");
+	}
+
+	// 終了時刻は開始時刻より後でなければならない
+	if (input.endTime <= input.startTime) {
+		return validationError("終了時刻は開始時刻より後に設定してください");
+	}
 
 	// 重複チェック（時間帯の重なり判定: start_a < end_b AND start_b < end_a）
 	const conflict = reservations.find(

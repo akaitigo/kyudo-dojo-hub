@@ -13,6 +13,7 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const loadIdRef = useRef(0);
 
 	useEffect(() => {
 		return () => {
@@ -79,12 +80,17 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 				return;
 			}
 
+			// Invalidate any in-flight metadata probe from a previous file selection
+			const currentLoadId = ++loadIdRef.current;
+
 			// Check video duration via metadata
 			const video = document.createElement("video");
 			video.preload = "metadata";
 			const tempUrl = URL.createObjectURL(file);
 			video.onloadedmetadata = () => {
 				URL.revokeObjectURL(tempUrl);
+				// Stale callback — a newer file was selected
+				if (currentLoadId !== loadIdRef.current) return;
 				const durationCheck = validateVideoDuration(video.duration);
 				if (!durationCheck.valid) {
 					setError(durationCheck.error ?? "不正な動画です");
@@ -94,6 +100,7 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 			};
 			video.onerror = () => {
 				URL.revokeObjectURL(tempUrl);
+				if (currentLoadId !== loadIdRef.current) return;
 				setError("動画メタデータの読み込みに失敗しました");
 			};
 			video.src = tempUrl;
