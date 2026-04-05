@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { HitRateChart } from "@/components/practice/HitRateChart";
 import { PracticeForm } from "@/components/practice/PracticeForm";
 import { PracticeList } from "@/components/practice/PracticeList";
-import { createPractice, getPractices } from "@/lib/mock-api";
+import { createPractice, getPractices } from "@/lib/api";
 import type { PracticeFormValues } from "@/lib/validation";
 import type { Practice } from "@/types/domain";
 

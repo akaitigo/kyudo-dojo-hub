@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ExamChecklistView } from "@/components/exam/ExamChecklistView";
-import { getExamChecklists, toggleChecklistItem } from "@/lib/mock-api";
+import { getExamChecklists, toggleChecklistItem } from "@/lib/api";
 import type { ExamChecklist } from "@/types/domain";
 
 /** 現在のモックユーザーID */

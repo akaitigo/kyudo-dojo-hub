@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type FieldErrors, useForm } from "react-hook-form";
+import type { Resolver } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { getLocalDateString } from "@/lib/date-utils";
 import { type PracticeFormValues, practiceFormSchema } from "@/lib/validation";
 
@@ -9,12 +10,13 @@ interface PracticeFormProps {
 }
 
 export function PracticeForm({ onSubmit, isSubmitting = false }: PracticeFormProps) {
+	const resolver: Resolver<PracticeFormValues> = zodResolver(practiceFormSchema);
 	const {
 		register,
 		handleSubmit,
-		formState: { errors: rawErrors },
-	} = useForm({
-		resolver: zodResolver(practiceFormSchema),
+		formState: { errors },
+	} = useForm<PracticeFormValues>({
+		resolver,
 		defaultValues: {
 			date: getLocalDateString(),
 			hitRate: 0,
@@ -23,8 +25,6 @@ export function PracticeForm({ onSubmit, isSubmitting = false }: PracticeFormPro
 			instructorComment: "",
 		},
 	});
-
-	const errors = rawErrors as FieldErrors<PracticeFormValues>;
 
 	const fieldStyle = {
 		width: "100%",
@@ -42,7 +42,7 @@ export function PracticeForm({ onSubmit, isSubmitting = false }: PracticeFormPro
 
 	return (
 		<form
-			onSubmit={handleSubmit((values) => onSubmit(values as PracticeFormValues))}
+			onSubmit={handleSubmit((values) => onSubmit(values))}
 			style={{
 				display: "flex",
 				flexDirection: "column",
@@ -77,7 +77,14 @@ export function PracticeForm({ onSubmit, isSubmitting = false }: PracticeFormPro
 					>
 						的中率 (%)
 					</label>
-					<input id="hitRate" type="number" min={0} max={100} {...register("hitRate")} style={fieldStyle} />
+					<input
+						id="hitRate"
+						type="number"
+						min={0}
+						max={100}
+						{...register("hitRate", { valueAsNumber: true })}
+						style={fieldStyle}
+					/>
 					{errors.hitRate?.message && <p style={errorStyle}>{errors.hitRate.message}</p>}
 				</div>
 				<div style={{ flex: 1 }}>
@@ -91,7 +98,14 @@ export function PracticeForm({ onSubmit, isSubmitting = false }: PracticeFormPro
 					>
 						矢数
 					</label>
-					<input id="arrowCount" type="number" min={1} max={1000} {...register("arrowCount")} style={fieldStyle} />
+					<input
+						id="arrowCount"
+						type="number"
+						min={1}
+						max={1000}
+						{...register("arrowCount", { valueAsNumber: true })}
+						style={fieldStyle}
+					/>
 					{errors.arrowCount?.message && <p style={errorStyle}>{errors.arrowCount.message}</p>}
 				</div>
 			</div>

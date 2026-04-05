@@ -1,4 +1,4 @@
-.PHONY: build test lint format typecheck check quality clean install test-e2e deps-check
+.PHONY: build test lint format typecheck check quality clean install test-e2e deps-check build-go test-go lint-go
 
 install:
 	npm install
@@ -6,12 +6,22 @@ install:
 build:
 	npx tsc && npx vite build
 
+build-go:
+	go build ./...
+
 test:
 	npx vitest run
+
+test-go:
+	go test -race ./...
 
 lint:
 	npx oxlint .
 	npx biome check .
+
+lint-go:
+	go vet ./...
+	golangci-lint run ./...
 
 format:
 	npx biome format --write .
@@ -19,7 +29,7 @@ format:
 typecheck:
 	npx tsc --noEmit
 
-check: format lint typecheck test build
+check: format lint typecheck test build lint-go test-go build-go
 	@echo "All checks passed."
 
 test-e2e:

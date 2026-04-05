@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Resolver } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { getLocalDateString } from "@/lib/date-utils";
 import { generateTimeSlots, type ReservationFormValues, reservationFormSchema } from "@/lib/reservation-validation";
@@ -11,12 +12,13 @@ interface ReservationFormProps {
 }
 
 export function ReservationForm({ dojo, onSubmit, isSubmitting = false }: ReservationFormProps) {
+	const resolver: Resolver<ReservationFormValues> = zodResolver(reservationFormSchema);
 	const {
 		register,
 		handleSubmit,
-		formState: { errors: rawErrors },
-	} = useForm({
-		resolver: zodResolver(reservationFormSchema),
+		formState: { errors },
+	} = useForm<ReservationFormValues>({
+		resolver,
 		defaultValues: {
 			date: getLocalDateString(),
 			startTime: "",
@@ -38,7 +40,7 @@ export function ReservationForm({ dojo, onSubmit, isSubmitting = false }: Reserv
 
 	return (
 		<form
-			onSubmit={handleSubmit((values) => onSubmit(values as ReservationFormValues))}
+			onSubmit={handleSubmit((values) => onSubmit(values))}
 			style={{
 				display: "flex",
 				flexWrap: "wrap",
@@ -58,7 +60,7 @@ export function ReservationForm({ dojo, onSubmit, isSubmitting = false }: Reserv
 					日付
 				</label>
 				<input id="res-date" type="date" {...register("date")} style={fieldStyle} />
-				{rawErrors.date?.message && <p style={errorStyle}>{rawErrors.date.message}</p>}
+				{errors.date?.message && <p style={errorStyle}>{errors.date.message}</p>}
 			</div>
 
 			<div>
@@ -80,7 +82,7 @@ export function ReservationForm({ dojo, onSubmit, isSubmitting = false }: Reserv
 						</option>
 					))}
 				</select>
-				{rawErrors.startTime?.message && <p style={errorStyle}>{rawErrors.startTime.message}</p>}
+				{errors.startTime?.message && <p style={errorStyle}>{errors.startTime.message}</p>}
 			</div>
 
 			<div>
@@ -94,14 +96,14 @@ export function ReservationForm({ dojo, onSubmit, isSubmitting = false }: Reserv
 				>
 					的場番号
 				</label>
-				<select id="res-lane" {...register("laneNumber")} style={fieldStyle}>
+				<select id="res-lane" {...register("laneNumber", { valueAsNumber: true })} style={fieldStyle}>
 					{lanes.map((l) => (
 						<option key={l} value={l}>
 							{l}
 						</option>
 					))}
 				</select>
-				{rawErrors.laneNumber?.message && <p style={errorStyle}>{rawErrors.laneNumber.message}</p>}
+				{errors.laneNumber?.message && <p style={errorStyle}>{errors.laneNumber.message}</p>}
 			</div>
 
 			<button
