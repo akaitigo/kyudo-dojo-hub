@@ -33,6 +33,10 @@ playwright-report/
 .cache/
 node_modules/.cache/
 
+# Go binary
+bin/
+/server
+
 # Secrets
 credentials.json
 secrets.yml

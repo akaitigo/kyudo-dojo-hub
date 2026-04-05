@@ -4,7 +4,7 @@ import { z } from "zod";
 export const reservationFormSchema = z.object({
 	date: z.string().min(1, "日付を入力してください"),
 	startTime: z.string().min(1, "開始時刻を選択してください"),
-	laneNumber: z.coerce.number().int().min(1, "的場番号を選択してください"),
+	laneNumber: z.number().int().min(1, "的場番号を選択してください"),
 });
 
 export type ReservationFormValues = z.infer<typeof reservationFormSchema>;
