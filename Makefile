@@ -39,7 +39,7 @@ format:
 typecheck:
 	npx tsc --noEmit
 
-check: format lint typecheck test build build-backend test-backend test-python
+check: format lint lint-go typecheck test build build-backend test-backend test-python
 	@echo "All checks passed."
 
 start-backend:
