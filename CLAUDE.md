@@ -28,7 +28,9 @@
 - lint設定の変更禁止（ADR必須）
 
 ## 構造
-src/ — React SPA (Vite)
+src/ — React SPA (Vite), API呼出は src/lib/api.ts
+backend/ — Go REST APIサーバー (インメモリストア)
+python/ — MediaPipe 射形分析ワーカー
 test/e2e/ — Playwright E2Eテスト
 docs/ — ADR・品質チェックリスト
 

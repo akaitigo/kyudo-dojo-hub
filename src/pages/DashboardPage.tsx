@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MemberList } from "@/components/member/MemberList";
 import { ReservationCalendar } from "@/components/reservation/ReservationCalendar";
 import { ReservationForm } from "@/components/reservation/ReservationForm";
-import { getLocalDateString } from "@/lib/date-utils";
-import type { DashboardSummary } from "@/lib/mock-api";
+import type { DashboardSummary } from "@/lib/api";
 import {
 	createReservation,
 	deleteReservation,
@@ -11,7 +10,8 @@ import {
 	getDojo,
 	getReservations,
 	getUsersByDojo,
-} from "@/lib/mock-api";
+} from "@/lib/api";
+import { getLocalDateString } from "@/lib/date-utils";
 import type { ReservationFormValues } from "@/lib/reservation-validation";
 import { getEndTime } from "@/lib/reservation-validation";
 import type { Dojo, Reservation, User } from "@/types/domain";

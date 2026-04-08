@@ -1,4 +1,4 @@
-.PHONY: build test lint format typecheck check quality clean install test-e2e deps-check
+.PHONY: build test lint format typecheck check quality clean install test-e2e deps-check build-backend test-backend test-python start-backend start-python
 
 install:
 	npm install
@@ -6,12 +6,22 @@ install:
 build:
 	npx tsc && npx vite build
 
+build-backend:
+	cd backend && go build ./...
+
 test:
 	npx vitest run
+
+test-backend:
+	cd backend && go test ./... -count=1
+
+test-python:
+	cd python && python3 -m pytest test_analyzer.py -v
 
 lint:
 	npx oxlint .
 	npx biome check .
+	cd backend && go vet ./...
 
 format:
 	npx biome format --write .
@@ -19,8 +29,14 @@ format:
 typecheck:
 	npx tsc --noEmit
 
-check: format lint typecheck test build
+check: format lint typecheck test build build-backend test-backend test-python
 	@echo "All checks passed."
+
+start-backend:
+	cd backend && go run ./cmd/server
+
+start-python:
+	cd python && python3 server.py
 
 test-e2e:
 	npx playwright test
