@@ -3,9 +3,9 @@ package handler
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/ryusei/kyudo-dojo-hub/backend/internal/model"
 	"github.com/ryusei/kyudo-dojo-hub/backend/internal/store"
@@ -13,19 +13,25 @@ import (
 
 // Handler holds dependencies for HTTP handlers.
 type Handler struct {
-	store *store.Store
+	store      *store.Store
+	httpClient *http.Client
 }
 
 // New creates a new Handler.
 func New(s *store.Store) *Handler {
-	return &Handler{store: s}
+	return &Handler{
+		store: s,
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
 }
 
 // ---------------------------------------------------------------------------
 // Response helpers
 // ---------------------------------------------------------------------------
 
-func writeJSON(w http.ResponseWriter, status int, v interface{}) {
+func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
@@ -33,15 +39,15 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	}
 }
 
-func writeSuccess(w http.ResponseWriter, data interface{}) {
-	writeJSON(w, http.StatusOK, model.APIResponse[interface{}]{
+func writeSuccess(w http.ResponseWriter, data any) {
+	writeJSON(w, http.StatusOK, model.APIResponse[any]{
 		Success: true,
 		Data:    data,
 	})
 }
 
-func writeCreated(w http.ResponseWriter, data interface{}) {
-	writeJSON(w, http.StatusCreated, model.APIResponse[interface{}]{
+func writeCreated(w http.ResponseWriter, data any) {
+	writeJSON(w, http.StatusCreated, model.APIResponse[any]{
 		Success: true,
 		Data:    data,
 	})
@@ -64,17 +70,12 @@ func writeValidationError(w http.ResponseWriter, message string) {
 	writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", message)
 }
 
-func decodeBody(r *http.Request, v interface{}) error {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if cerr := r.Body.Close(); cerr != nil {
-			log.Printf("error closing request body: %v", cerr)
-		}
-	}()
-	return json.Unmarshal(body, v)
+// maxRequestBodySize is the maximum allowed request body size (1 MB).
+const maxRequestBodySize = 1 << 20
+
+func decodeBody(r *http.Request, v any) error {
+	r.Body = http.MaxBytesReader(nil, r.Body, maxRequestBodySize)
+	return json.NewDecoder(r.Body).Decode(v)
 }
 
 // ---------------------------------------------------------------------------
@@ -271,7 +272,7 @@ func (h *Handler) AnalyzeVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call Python MediaPipe worker
-	analysis, err := callMediaPipeWorker(r.Context(), video, req.UserID)
+	analysis, err := h.callMediaPipeWorker(r.Context(), video, req.UserID)
 	if err != nil {
 		log.Printf("MediaPipe worker unavailable, using fallback: %v", err)
 

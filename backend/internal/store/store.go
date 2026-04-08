@@ -2,8 +2,8 @@
 package store
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -31,14 +31,21 @@ func New() *Store {
 }
 
 func generateID() string {
-	return fmt.Sprintf("%d-%s", time.Now().UnixNano(), randomString(7))
+	return fmt.Sprintf("%d-%s", time.Now().UnixNano(), RandomString(7))
 }
 
-func randomString(n int) string {
+// RandomString generates a cryptographically random string of length n
+// using lowercase letters and digits. It is safe for ID generation.
+func RandomString(n int) string {
 	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		// crypto/rand.Read never returns an error on supported platforms,
+		// but handle it defensively.
+		panic(fmt.Sprintf("crypto/rand.Read failed: %v", err))
+	}
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+		b[i] = letters[b[i]%byte(len(letters))]
 	}
 	return string(b)
 }
