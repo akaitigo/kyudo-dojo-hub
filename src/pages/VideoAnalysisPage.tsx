@@ -2,12 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PhaseTimeline } from "@/components/analysis/PhaseTimeline";
 import { ScoreChart } from "@/components/analysis/ScoreChart";
 import { VideoUploader } from "@/components/video/VideoUploader";
-import { MOCK_ANALYSES } from "@/lib/mock-data";
+import { analyzeVideo, createVideo } from "@/lib/api";
 import type { Analysis } from "@/types/domain";
+
+/** 現在のユーザーID */
+const CURRENT_USER_ID = "user-001";
 
 export function VideoAnalysisPage() {
 	const [videoUrl, setVideoUrl] = useState<string | null>(null);
 	const [analysis, setAnalysis] = useState<Analysis | null>(null);
+	const [analyzing, setAnalyzing] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
 	const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -25,20 +29,36 @@ export function VideoAnalysisPage() {
 		};
 	}, [videoUrl]);
 
-	const handleUpload = useCallback((file: File, objectUrl: string) => {
+	const handleUpload = useCallback(async (file: File, objectUrl: string) => {
 		setVideoUrl(objectUrl);
-		// MVP: ファイル名ベースでモック分析結果を選択（異なる動画に異なる結果）
-		if (MOCK_ANALYSES.length > 0) {
-			let hash = 0;
-			for (let i = 0; i < file.name.length; i++) {
-				hash = (hash * 31 + file.name.charCodeAt(i)) | 0;
-			}
-			const index = Math.abs(hash) % MOCK_ANALYSES.length;
-			const mockAnalysis = MOCK_ANALYSES[index];
-			if (mockAnalysis) {
-				setAnalysis(mockAnalysis);
-			}
+		setAnalyzing(true);
+		setAnalysis(null);
+
+		// 1. 動画メタデータをバックエンドに登録
+		const videoResult = await createVideo({
+			userId: CURRENT_USER_ID,
+			fileName: file.name,
+			fileSize: file.size,
+			duration: 0, // ブラウザから取得不可なため後で更新
+			mimeType: file.type as "video/mp4" | "video/quicktime" | "video/webm",
+			url: objectUrl,
+		});
+
+		if (!videoResult.success) {
+			setAnalyzing(false);
+			return;
 		}
+
+		// 2. バックエンド経由で射形分析を実行
+		const analysisResult = await analyzeVideo({
+			videoId: videoResult.data.id,
+			userId: CURRENT_USER_ID,
+		});
+
+		if (analysisResult.success) {
+			setAnalysis(analysisResult.data);
+		}
+		setAnalyzing(false);
 	}, []);
 
 	const handlePhaseClick = useCallback((startTime: number) => {
@@ -85,6 +105,8 @@ export function VideoAnalysisPage() {
 							}}
 						/>
 					</section>
+
+					{analyzing && <p style={{ textAlign: "center", color: "#666", padding: "1rem" }}>射形を分析中...</p>}
 
 					{analysis && (
 						<>

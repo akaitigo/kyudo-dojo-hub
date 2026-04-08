@@ -1,184 +1,233 @@
 /**
- * Unified API facade.
+ * API クライアント層
  *
- * When VITE_API_BASE_URL is set, delegates to the real Go API.
- * Otherwise, falls back to the in-memory mock API.
+ * Go バックエンド (REST API) に HTTP リクエストを送信する。
+ * mock-api.ts と同じインターフェースを維持し、差し替え可能にする。
  */
-import { apiDelete, apiGet, apiPatch, apiPost, isRealApiEnabled } from "@/lib/api-client";
-import type {
-	DashboardSummary,
-	CreatePracticeInput as MockCreatePracticeInput,
-	CreateReservationInput as MockCreateReservationInput,
-} from "@/lib/mock-api";
-import * as mockApi from "@/lib/mock-api";
-import type { Analysis, ApiResult, Dojo, ExamChecklist, Practice, Reservation, User } from "@/types/domain";
+import type { Analysis, ApiResult, Dojo, ExamChecklist, Practice, Reservation, User, Video } from "@/types/domain";
 
 // ---------------------------------------------------------------------------
-// Users
+// Configuration
+// ---------------------------------------------------------------------------
+
+const API_BASE_URL = (import.meta.env["VITE_API_BASE_URL"] as string | undefined) ?? "http://localhost:8080";
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
+	try {
+		const response = await fetch(`${API_BASE_URL}${path}`, {
+			headers: { "Content-Type": "application/json" },
+			...init,
+		});
+
+		const json: unknown = await response.json();
+
+		// The Go API returns { success: true/false, data/error }
+		if (typeof json === "object" && json !== null && "success" in json) {
+			return json as ApiResult<T>;
+		}
+
+		return {
+			success: false,
+			error: { code: "UNKNOWN", message: "予期しないレスポンス形式です" },
+		};
+	} catch (err: unknown) {
+		const message = err instanceof Error ? err.message : "通信エラーが発生しました";
+		return {
+			success: false,
+			error: { code: "NETWORK_ERROR", message },
+		};
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Users API
 // ---------------------------------------------------------------------------
 
 export async function getUsers(): Promise<ApiResult<readonly User[]>> {
-	if (isRealApiEnabled()) {
-		return apiGet<readonly User[]>("/api/v1/users");
-	}
-	return mockApi.getUsers();
+	return apiFetch<readonly User[]>("/api/users");
 }
 
 export async function getUser(id: string): Promise<ApiResult<User>> {
-	if (isRealApiEnabled()) {
-		return apiGet<User>(`/api/v1/users/${id}`);
-	}
-	return mockApi.getUser(id);
+	return apiFetch<User>(`/api/users/${encodeURIComponent(id)}`);
 }
 
 export async function getUsersByDojo(dojoId: string): Promise<ApiResult<readonly User[]>> {
-	if (isRealApiEnabled()) {
-		return apiGet<readonly User[]>(`/api/v1/dojos/${dojoId}/users`);
-	}
-	return mockApi.getUsersByDojo(dojoId);
+	return apiFetch<readonly User[]>(`/api/users?dojoId=${encodeURIComponent(dojoId)}`);
 }
 
 // ---------------------------------------------------------------------------
-// Dojos
+// Dojos API
 // ---------------------------------------------------------------------------
 
 export async function getDojos(): Promise<ApiResult<readonly Dojo[]>> {
-	if (isRealApiEnabled()) {
-		return apiGet<readonly Dojo[]>("/api/v1/dojos");
-	}
-	return mockApi.getDojos();
+	return apiFetch<readonly Dojo[]>("/api/dojos");
 }
 
 export async function getDojo(id: string): Promise<ApiResult<Dojo>> {
-	if (isRealApiEnabled()) {
-		return apiGet<Dojo>(`/api/v1/dojos/${id}`);
-	}
-	return mockApi.getDojo(id);
+	return apiFetch<Dojo>(`/api/dojos/${encodeURIComponent(id)}`);
 }
 
 // ---------------------------------------------------------------------------
-// Practices
+// Practices API
 // ---------------------------------------------------------------------------
 
 export async function getPractices(userId?: string): Promise<ApiResult<readonly Practice[]>> {
-	if (isRealApiEnabled()) {
-		const query = userId ? `?userId=${userId}` : "";
-		return apiGet<readonly Practice[]>(`/api/v1/practices${query}`);
-	}
-	return mockApi.getPractices(userId);
+	const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+	return apiFetch<readonly Practice[]>(`/api/practices${qs}`);
 }
 
 export async function getPractice(id: string): Promise<ApiResult<Practice>> {
-	if (isRealApiEnabled()) {
-		return apiGet<Practice>(`/api/v1/practices/${id}`);
-	}
-	return mockApi.getPractice(id);
+	return apiFetch<Practice>(`/api/practices/${encodeURIComponent(id)}`);
 }
 
-export async function createPractice(input: MockCreatePracticeInput): Promise<ApiResult<Practice>> {
-	if (isRealApiEnabled()) {
-		return apiPost<Practice>("/api/v1/practices", input);
-	}
-	return mockApi.createPractice(input);
+export interface CreatePracticeInput {
+	readonly userId: string;
+	readonly dojoId?: string;
+	readonly date: string;
+	readonly hitRate: number;
+	readonly arrowCount: number;
+	readonly notes: string;
+	readonly instructorComment: string;
+}
+
+export async function createPractice(input: CreatePracticeInput): Promise<ApiResult<Practice>> {
+	return apiFetch<Practice>("/api/practices", {
+		method: "POST",
+		body: JSON.stringify(input),
+	});
 }
 
 // ---------------------------------------------------------------------------
-// Analyses
+// Videos API
+// ---------------------------------------------------------------------------
+
+export async function getVideos(userId?: string): Promise<ApiResult<readonly Video[]>> {
+	const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+	return apiFetch<readonly Video[]>(`/api/videos${qs}`);
+}
+
+export async function getVideo(id: string): Promise<ApiResult<Video>> {
+	return apiFetch<Video>(`/api/videos/${encodeURIComponent(id)}`);
+}
+
+export interface CreateVideoInput {
+	readonly userId: string;
+	readonly practiceId?: string;
+	readonly fileName: string;
+	readonly fileSize: number;
+	readonly duration: number;
+	readonly mimeType: "video/mp4" | "video/quicktime" | "video/webm";
+	readonly url: string;
+}
+
+export async function createVideo(input: CreateVideoInput): Promise<ApiResult<Video>> {
+	return apiFetch<Video>("/api/videos", {
+		method: "POST",
+		body: JSON.stringify(input),
+	});
+}
+
+// ---------------------------------------------------------------------------
+// Analyses API
 // ---------------------------------------------------------------------------
 
 export async function getAnalyses(userId?: string): Promise<ApiResult<readonly Analysis[]>> {
-	if (isRealApiEnabled()) {
-		const query = userId ? `?userId=${userId}` : "";
-		return apiGet<readonly Analysis[]>(`/api/v1/analyses${query}`);
-	}
-	return mockApi.getAnalyses(userId);
+	const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+	return apiFetch<readonly Analysis[]>(`/api/analyses${qs}`);
 }
 
 export async function getAnalysis(id: string): Promise<ApiResult<Analysis>> {
-	if (isRealApiEnabled()) {
-		return apiGet<Analysis>(`/api/v1/analyses/${id}`);
-	}
-	return mockApi.getAnalysis(id);
+	return apiFetch<Analysis>(`/api/analyses/${encodeURIComponent(id)}`);
 }
 
 export async function getAnalysisByVideo(videoId: string): Promise<ApiResult<Analysis>> {
-	if (isRealApiEnabled()) {
-		return apiGet<Analysis>(`/api/v1/analyses/by-video/${videoId}`);
-	}
-	return mockApi.getAnalysisByVideo(videoId);
+	return apiFetch<Analysis>(`/api/analyses/video/${encodeURIComponent(videoId)}`);
+}
+
+export interface AnalyzeVideoInput {
+	readonly videoId: string;
+	readonly userId: string;
+}
+
+export async function analyzeVideo(input: AnalyzeVideoInput): Promise<ApiResult<Analysis>> {
+	return apiFetch<Analysis>("/api/analyses/analyze", {
+		method: "POST",
+		body: JSON.stringify(input),
+	});
 }
 
 // ---------------------------------------------------------------------------
-// Reservations
+// Reservations API
 // ---------------------------------------------------------------------------
 
 export async function getReservations(dojoId?: string, date?: string): Promise<ApiResult<readonly Reservation[]>> {
-	if (isRealApiEnabled()) {
-		const params = new URLSearchParams();
-		if (dojoId) params.set("dojoId", dojoId);
-		if (date) params.set("date", date);
-		const query = params.toString() ? `?${params.toString()}` : "";
-		return apiGet<readonly Reservation[]>(`/api/v1/reservations${query}`);
-	}
-	return mockApi.getReservations(dojoId, date);
+	const params = new URLSearchParams();
+	if (dojoId) params.set("dojoId", dojoId);
+	if (date) params.set("date", date);
+	const qs = params.toString() ? `?${params.toString()}` : "";
+	return apiFetch<readonly Reservation[]>(`/api/reservations${qs}`);
 }
 
 export async function getReservation(id: string): Promise<ApiResult<Reservation>> {
-	if (isRealApiEnabled()) {
-		return apiGet<Reservation>(`/api/v1/reservations/${id}`);
-	}
-	return mockApi.getReservation(id);
+	return apiFetch<Reservation>(`/api/reservations/${encodeURIComponent(id)}`);
 }
 
-export async function createReservation(input: MockCreateReservationInput): Promise<ApiResult<Reservation>> {
-	if (isRealApiEnabled()) {
-		return apiPost<Reservation>("/api/v1/reservations", input);
-	}
-	return mockApi.createReservation(input);
+export interface CreateReservationInput {
+	readonly dojoId: string;
+	readonly userId: string;
+	readonly laneNumber: number;
+	readonly date: string;
+	readonly startTime: string;
+	readonly endTime: string;
+}
+
+export async function createReservation(input: CreateReservationInput): Promise<ApiResult<Reservation>> {
+	return apiFetch<Reservation>("/api/reservations", {
+		method: "POST",
+		body: JSON.stringify(input),
+	});
 }
 
 export async function deleteReservation(id: string): Promise<ApiResult<{ readonly deleted: true }>> {
-	if (isRealApiEnabled()) {
-		return apiDelete<{ readonly deleted: true }>(`/api/v1/reservations/${id}`);
-	}
-	return mockApi.deleteReservation(id);
+	return apiFetch<{ readonly deleted: true }>(`/api/reservations/${encodeURIComponent(id)}`, {
+		method: "DELETE",
+	});
 }
 
 // ---------------------------------------------------------------------------
-// Exam Checklists
+// Exam Checklists API
 // ---------------------------------------------------------------------------
 
 export async function getExamChecklists(userId?: string): Promise<ApiResult<readonly ExamChecklist[]>> {
-	if (isRealApiEnabled()) {
-		const query = userId ? `?userId=${userId}` : "";
-		return apiGet<readonly ExamChecklist[]>(`/api/v1/exam-checklists${query}`);
-	}
-	return mockApi.getExamChecklists(userId);
+	const qs = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+	return apiFetch<readonly ExamChecklist[]>(`/api/exam-checklists${qs}`);
 }
 
 export async function getExamChecklist(id: string): Promise<ApiResult<ExamChecklist>> {
-	if (isRealApiEnabled()) {
-		return apiGet<ExamChecklist>(`/api/v1/exam-checklists/${id}`);
-	}
-	return mockApi.getExamChecklist(id);
+	return apiFetch<ExamChecklist>(`/api/exam-checklists/${encodeURIComponent(id)}`);
 }
 
 export async function toggleChecklistItem(checklistId: string, itemId: string): Promise<ApiResult<ExamChecklist>> {
-	if (isRealApiEnabled()) {
-		return apiPatch<ExamChecklist>(`/api/v1/exam-checklists/${checklistId}/items/${itemId}/toggle`);
-	}
-	return mockApi.toggleChecklistItem(checklistId, itemId);
+	return apiFetch<ExamChecklist>(
+		`/api/exam-checklists/${encodeURIComponent(checklistId)}/items/${encodeURIComponent(itemId)}/toggle`,
+		{ method: "PATCH" },
+	);
 }
 
 // ---------------------------------------------------------------------------
-// Dashboard
+// Dashboard API
 // ---------------------------------------------------------------------------
 
-export type { DashboardSummary } from "@/lib/mock-api";
+export interface DashboardSummary {
+	readonly todayReservationCount: number;
+	readonly totalMemberCount: number;
+	readonly todayReservations: readonly Reservation[];
+}
 
 export async function getDashboardSummary(dojoId: string): Promise<ApiResult<DashboardSummary>> {
-	if (isRealApiEnabled()) {
-		return apiGet<DashboardSummary>(`/api/v1/dojos/${dojoId}/dashboard`);
-	}
-	return mockApi.getDashboardSummary(dojoId);
+	return apiFetch<DashboardSummary>(`/api/dashboard/${encodeURIComponent(dojoId)}`);
 }

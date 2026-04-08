@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { validateVideoDuration, validateVideoFile } from "@/lib/video-validation";
 
 interface VideoUploaderProps {
-	readonly onUpload: (file: File, objectUrl: string) => void;
+	readonly onUpload: (file: File, objectUrl: string) => void | Promise<void>;
 }
 
 export function VideoUploader({ onUpload }: VideoUploaderProps) {

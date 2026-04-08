@@ -44,3 +44,13 @@ secrets.yml
 *.key
 *.p12
 *.pfx
+
+# Go
+backend/server
+backend/cmd/server/server
+
+# Python
+python/__pycache__/
+python/.pytest_cache/
+python/*.egg-info/
+python/venv/
