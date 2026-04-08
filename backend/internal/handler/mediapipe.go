@@ -9,12 +9,20 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/ryusei/kyudo-dojo-hub/backend/internal/model"
 )
 
-const mediaPipeWorkerURL = "http://localhost:8081/analyze"
+// getMediaPipeWorkerURL returns the MediaPipe worker URL from environment variable
+// MEDIAPIPE_WORKER_URL. Falls back to http://localhost:8081 if not set.
+func getMediaPipeWorkerURL() string {
+	if url := os.Getenv("MEDIAPIPE_WORKER_URL"); url != "" {
+		return url
+	}
+	return "http://localhost:8081"
+}
 
 // mediaPipeRequest is the payload sent to the Python MediaPipe worker.
 type mediaPipeRequest struct {
@@ -44,7 +52,8 @@ func callMediaPipeWorker(ctx context.Context, video model.Video, userID string) 
 	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, mediaPipeWorkerURL, bytes.NewReader(bodyBytes))
+	workerURL := getMediaPipeWorkerURL() + "/analyze"
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, workerURL, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return model.Analysis{}, fmt.Errorf("failed to create request: %w", err)
 	}
