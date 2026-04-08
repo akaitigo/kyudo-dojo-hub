@@ -13,6 +13,37 @@ import type { Analysis, ApiResult, Dojo, ExamChecklist, Practice, Reservation, U
 const API_BASE_URL = (import.meta.env["VITE_API_BASE_URL"] as string | undefined) ?? "";
 
 // ---------------------------------------------------------------------------
+// Type guards
+// ---------------------------------------------------------------------------
+
+/** Go APIの成功レスポンス構造を検証する型ガード */
+function isApiSuccess<T>(value: unknown): value is { success: true; data: T } {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		"success" in value &&
+		(value as Record<string, unknown>)["success"] === true &&
+		"data" in value
+	);
+}
+
+/** Go APIのエラーレスポンス構造を検証する型ガード */
+function isApiError(value: unknown): value is {
+	success: false;
+	error: { code: string; message: string };
+} {
+	if (typeof value !== "object" || value === null || !("success" in value)) {
+		return false;
+	}
+	const obj = value as Record<string, unknown>;
+	if (obj["success"] !== false || typeof obj["error"] !== "object" || obj["error"] === null) {
+		return false;
+	}
+	const err = obj["error"] as Record<string, unknown>;
+	return typeof err["code"] === "string" && typeof err["message"] === "string";
+}
+
+// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
@@ -26,8 +57,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<ApiResult<
 		const json: unknown = await response.json();
 
 		// The Go API returns { success: true/false, data/error }
-		if (typeof json === "object" && json !== null && "success" in json) {
-			return json as ApiResult<T>;
+		if (isApiSuccess<T>(json)) {
+			return json;
+		}
+		if (isApiError(json)) {
+			return json;
 		}
 
 		return {
