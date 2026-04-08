@@ -47,9 +47,9 @@ function validationError(message: string): ApiResult<never> {
 	};
 }
 
-/** 簡易 UUID 生成 */
+/** UUID v4 生成 */
 function generateId(): string {
-	return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+	return crypto.randomUUID();
 }
 
 // ---------------------------------------------------------------------------

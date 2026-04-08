@@ -1,4 +1,4 @@
-.PHONY: build test lint format typecheck check quality clean install test-e2e deps-check build-backend test-backend test-python start-backend start-python
+.PHONY: build test lint format typecheck check quality clean install test-e2e deps-check build-backend test-backend test-python start-backend start-python lint-go test-go build-go
 
 install:
 	npm install
@@ -9,11 +9,17 @@ build:
 build-backend:
 	cd backend && go build ./...
 
+build-go:
+	cd backend && go build ./...
+
 test:
 	npx vitest run
 
 test-backend:
 	cd backend && go test ./... -count=1
+
+test-go:
+	cd backend && go test -race ./...
 
 test-python:
 	cd python && python3 -m pytest test_analyzer.py -v
@@ -22,6 +28,10 @@ lint:
 	npx oxlint .
 	npx biome check .
 	cd backend && go vet ./...
+
+lint-go:
+	cd backend && go vet ./...
+	cd backend && golangci-lint run ./...
 
 format:
 	npx biome format --write .
