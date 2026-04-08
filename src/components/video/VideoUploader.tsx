@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { validateVideoDuration, validateVideoFile } from "@/lib/video-validation";
 
 interface VideoUploaderProps {
-	readonly onUpload: (file: File, objectUrl: string) => void | Promise<void>;
+	readonly onUpload: (file: File, objectUrl: string, duration: number) => void | Promise<void>;
 }
 
 export function VideoUploader({ onUpload }: VideoUploaderProps) {
@@ -30,7 +30,7 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 	}, []);
 
 	const startUpload = useCallback(
-		(file: File) => {
+		(file: File, duration: number) => {
 			// Clear any previous timers
 			if (intervalRef.current !== null) {
 				clearInterval(intervalRef.current);
@@ -64,7 +64,7 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 				}
 				setProgress(100);
 				const objectUrl = URL.createObjectURL(file);
-				onUpload(file, objectUrl);
+				onUpload(file, objectUrl, duration);
 				resetTimerRef.current = setTimeout(() => setProgress(null), 500);
 			}, 1100);
 		},
@@ -96,7 +96,7 @@ export function VideoUploader({ onUpload }: VideoUploaderProps) {
 					setError(durationCheck.error ?? "不正な動画です");
 					return;
 				}
-				startUpload(file);
+				startUpload(file, video.duration);
 			};
 			video.onerror = () => {
 				URL.revokeObjectURL(tempUrl);

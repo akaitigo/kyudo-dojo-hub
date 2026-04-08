@@ -29,7 +29,7 @@ export function VideoAnalysisPage() {
 		};
 	}, [videoUrl]);
 
-	const handleUpload = useCallback(async (file: File, objectUrl: string) => {
+	const handleUpload = useCallback(async (file: File, objectUrl: string, duration: number) => {
 		setVideoUrl(objectUrl);
 		setAnalyzing(true);
 		setAnalysis(null);
@@ -39,7 +39,7 @@ export function VideoAnalysisPage() {
 			userId: CURRENT_USER_ID,
 			fileName: file.name,
 			fileSize: file.size,
-			duration: 0, // ブラウザから取得不可なため後で更新
+			duration,
 			mimeType: file.type as "video/mp4" | "video/quicktime" | "video/webm",
 			url: objectUrl,
 		});
