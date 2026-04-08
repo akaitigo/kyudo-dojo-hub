@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ryusei/kyudo-dojo-hub/backend/internal/handler"
@@ -212,6 +213,19 @@ func TestCreatePractice_InvalidBody(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestCreatePractice_BodyTooLarge(t *testing.T) {
+	h := setupHandler()
+	// 1MB + 1 byte exceeds the MaxBytesReader limit
+	largeBody := strings.Repeat("x", 1<<20+1)
+	req := httptest.NewRequest(http.MethodPost, "/api/practices", strings.NewReader(largeBody))
+	rec := httptest.NewRecorder()
+	h.CreatePractice(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for oversized body, got %d", rec.Code)
 	}
 }
 

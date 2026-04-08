@@ -7,6 +7,43 @@ import (
 	"github.com/ryusei/kyudo-dojo-hub/backend/internal/store"
 )
 
+func TestRandomString_Length(t *testing.T) {
+	for _, n := range []int{0, 1, 5, 10, 32} {
+		s := store.RandomString(n)
+		if len(s) != n {
+			t.Fatalf("RandomString(%d) returned length %d", n, len(s))
+		}
+	}
+}
+
+func TestRandomString_Uniqueness(t *testing.T) {
+	seen := make(map[string]bool)
+	for i := 0; i < 100; i++ {
+		s := store.RandomString(16)
+		if seen[s] {
+			t.Fatalf("RandomString(16) produced duplicate: %s", s)
+		}
+		seen[s] = true
+	}
+}
+
+func TestRandomString_ValidCharacters(t *testing.T) {
+	const validChars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	s := store.RandomString(100)
+	for _, c := range s {
+		found := false
+		for _, v := range validChars {
+			if c == v {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("RandomString produced invalid character: %c", c)
+		}
+	}
+}
+
 func newTestStore() *store.Store {
 	return store.New()
 }

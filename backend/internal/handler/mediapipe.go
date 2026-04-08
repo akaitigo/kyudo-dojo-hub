@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ryusei/kyudo-dojo-hub/backend/internal/model"
+	"github.com/ryusei/kyudo-dojo-hub/backend/internal/store"
 )
 
 // getMediaPipeWorkerURL returns the MediaPipe worker URL from environment variable
@@ -39,7 +40,7 @@ type mediaPipeResponse struct {
 }
 
 // callMediaPipeWorker sends an analysis request to the Python MediaPipe worker.
-func callMediaPipeWorker(ctx context.Context, video model.Video, userID string) (model.Analysis, error) {
+func (h *Handler) callMediaPipeWorker(ctx context.Context, video model.Video, userID string) (model.Analysis, error) {
 	reqBody := mediaPipeRequest{
 		VideoID:  video.ID,
 		Duration: video.Duration,
@@ -59,7 +60,7 @@ func callMediaPipeWorker(ctx context.Context, video model.Video, userID string) 
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := h.httpClient.Do(req)
 	if err != nil {
 		return model.Analysis{}, fmt.Errorf("failed to call MediaPipe worker: %w", err)
 	}
@@ -84,7 +85,7 @@ func callMediaPipeWorker(ctx context.Context, video model.Video, userID string) 
 
 	now := time.Now()
 	analysis := model.Analysis{
-		ID:           fmt.Sprintf("analysis-%d-%s", now.UnixNano(), randomString(5)),
+		ID:           fmt.Sprintf("analysis-%d-%s", now.UnixNano(), store.RandomString(5)),
 		VideoID:      video.ID,
 		UserID:       userID,
 		Scores:       mpResp.Scores,
@@ -94,16 +95,6 @@ func callMediaPipeWorker(ctx context.Context, video model.Video, userID string) 
 		CreatedAt:    now,
 	}
 	return analysis, nil
-}
-
-// randomString is defined in store package but we need a local copy here.
-func randomString(n int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letters[time.Now().UnixNano()%int64(len(letters))]
-	}
-	return string(b)
 }
 
 // generateFallbackAnalysis produces a deterministic simulated analysis result
