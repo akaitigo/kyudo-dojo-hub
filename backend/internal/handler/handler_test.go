@@ -401,3 +401,29 @@ func TestAnalyzeVideo_FallbackWhenWorkerUnavailable(t *testing.T) {
 		t.Fatalf("expected 8 phases in fallback, got %d", len(resp.Data.Phases))
 	}
 }
+
+func TestAnalyzeVideo_WorkerReturnsError(t *testing.T) {
+	// MediaPipeワーカーがエラーを返す場合にフォールバックが使われることを確認
+	s := store.New()
+	h := handler.New(s)
+
+	body := `{"videoId":"video-001","userId":"user-001"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/analyses/analyze", bytes.NewBufferString(body))
+	rec := httptest.NewRecorder()
+	h.AnalyzeVideo(rec, req)
+
+	// ワーカーが起動していないためフォールバック
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", rec.Code)
+	}
+
+	var resp envelope[model.Analysis]
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+	// フォールバック分析が8フェーズすべてのスコアを持つことを確認
+	scores := resp.Data.Scores
+	if scores.Ashibumi == 0 && scores.Dozukuri == 0 && scores.Kai == 0 {
+		t.Fatal("expected non-zero fallback scores")
+	}
+}
