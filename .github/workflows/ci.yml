@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  check:
+  frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,3 +37,46 @@ jobs:
 
       - name: Build
         run: npx tsc && npx vite build
+
+  backend-go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Go vet (root)
+        run: go vet ./...
+
+      - name: Go test (root)
+        run: go test -race ./... -count=1
+
+      - name: Go build (root)
+        run: go build ./...
+
+      - name: Go vet (backend)
+        run: cd backend && go vet ./...
+
+      - name: Go test (backend)
+        run: cd backend && go test -race ./... -count=1
+
+      - name: Go build (backend)
+        run: cd backend && go build ./...
+
+  backend-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install flask pytest
+
+      - name: Python tests
+        run: cd python && python -m pytest test_analyzer.py test_server.py -v
