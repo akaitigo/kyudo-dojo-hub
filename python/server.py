@@ -8,6 +8,7 @@ HassetsuAnalyzer で八節分析を実行して結果を返す。
     python server.py [--port 8081]
 
 環境変数:
+    MEDIAPIPE_WORKER_HOST: バインドアドレス (デフォルト: 127.0.0.1)
     MEDIAPIPE_WORKER_PORT: ポート番号 (デフォルト: 8081)
 """
 
@@ -118,8 +119,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    logger.info("Starting MediaPipe worker on port %d (mode: %s)", args.port, analyzer.mode)
-    app.run(host="0.0.0.0", port=args.port, debug=False)
+    host = os.environ.get("MEDIAPIPE_WORKER_HOST", "127.0.0.1")
+    logger.info(
+        "Starting MediaPipe worker on %s:%d (mode: %s)",
+        host,
+        args.port,
+        analyzer.mode,
+    )
+    app.run(host=host, port=args.port, debug=False)
 
 
 if __name__ == "__main__":
