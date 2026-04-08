@@ -71,7 +71,10 @@ func (h *Handler) callMediaPipeWorker(ctx context.Context, video model.Video, us
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, readErr := io.ReadAll(resp.Body)
+		// エラーレスポンスのサイズを1MBに制限し、メモリ枯渇を防止
+		const maxErrorResponseSize = 1 << 20
+		limitedReader := io.LimitReader(resp.Body, maxErrorResponseSize)
+		respBody, readErr := io.ReadAll(limitedReader)
 		if readErr != nil {
 			return model.Analysis{}, fmt.Errorf("MediaPipe worker returned status %d, failed to read body: %w", resp.StatusCode, readErr)
 		}
