@@ -8,10 +8,19 @@ import type { Analysis } from "@/types/domain";
 /** 現在のユーザーID */
 const CURRENT_USER_ID = "user-001";
 
+/** 許可されたMIMEタイプ */
+const ALLOWED_MIME_TYPES = ["video/mp4", "video/quicktime", "video/webm"] as const;
+type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number];
+
+function isAllowedMimeType(value: string): value is AllowedMimeType {
+	return (ALLOWED_MIME_TYPES as readonly string[]).includes(value);
+}
+
 export function VideoAnalysisPage() {
 	const [videoUrl, setVideoUrl] = useState<string | null>(null);
 	const [analysis, setAnalysis] = useState<Analysis | null>(null);
 	const [analyzing, setAnalyzing] = useState(false);
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [currentTime, setCurrentTime] = useState(0);
 	const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -33,6 +42,13 @@ export function VideoAnalysisPage() {
 		setVideoUrl(objectUrl);
 		setAnalyzing(true);
 		setAnalysis(null);
+		setErrorMessage(null);
+
+		if (!isAllowedMimeType(file.type)) {
+			setErrorMessage("対応していない動画形式です。mp4, mov, webm のいずれかをアップロードしてください。");
+			setAnalyzing(false);
+			return;
+		}
 
 		// 1. 動画メタデータをバックエンドに登録
 		const videoResult = await createVideo({
@@ -40,11 +56,12 @@ export function VideoAnalysisPage() {
 			fileName: file.name,
 			fileSize: file.size,
 			duration,
-			mimeType: file.type as "video/mp4" | "video/quicktime" | "video/webm",
+			mimeType: file.type,
 			url: objectUrl,
 		});
 
 		if (!videoResult.success) {
+			setErrorMessage(videoResult.error.message);
 			setAnalyzing(false);
 			return;
 		}
@@ -57,6 +74,8 @@ export function VideoAnalysisPage() {
 
 		if (analysisResult.success) {
 			setAnalysis(analysisResult.data);
+		} else {
+			setErrorMessage(analysisResult.error.message);
 		}
 		setAnalyzing(false);
 	}, []);
@@ -108,6 +127,22 @@ export function VideoAnalysisPage() {
 
 					{analyzing && <p style={{ textAlign: "center", color: "#666", padding: "1rem" }}>射形を分析中...</p>}
 
+					{errorMessage && (
+						<div
+							role="alert"
+							style={{
+								padding: "1rem",
+								marginBottom: "1.5rem",
+								backgroundColor: "#fef2f2",
+								border: "1px solid #fca5a5",
+								borderRadius: "8px",
+								color: "#991b1b",
+							}}
+						>
+							{errorMessage}
+						</div>
+					)}
+
 					{analysis && (
 						<>
 							<section style={{ marginBottom: "1.5rem" }}>
@@ -138,6 +173,7 @@ export function VideoAnalysisPage() {
 						onClick={() => {
 							setVideoUrl(null);
 							setAnalysis(null);
+							setErrorMessage(null);
 						}}
 						style={{
 							padding: "0.5rem 1rem",
