@@ -26,7 +26,7 @@
 		"oxlint": "^1.60.0",
 		"typescript": "^6.0.3",
 		"vite": "^8.0.9",
-		"vitest": "^4.1.4"
+		"vitest": "^4.1.5"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.2.2",
