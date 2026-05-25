@@ -29,7 +29,7 @@
 		"vitest": "^4.1.6"
 	},
 	"dependencies": {
-		"@hookform/resolvers": "^5.2.2",
+		"@hookform/resolvers": "^5.4.0",
 		"react": "^19.2.6",
 		"react-dom": "^19.2.6",
 		"react-hook-form": "^7.76.0",
