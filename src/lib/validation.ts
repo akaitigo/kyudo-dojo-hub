@@ -1,22 +1,15 @@
 import { z } from "zod";
+import { getLocalDateString, getOneYearAgoDateString } from "@/lib/date-utils";
 
 /** 稽古日誌の入力バリデーションスキーマ */
 export const practiceFormSchema = z.object({
 	date: z
 		.string()
 		.min(1, "日付を入力してください")
-		.refine((val) => {
-			const d = new Date(val);
-			const now = new Date();
-			now.setHours(23, 59, 59, 999);
-			return d <= now;
-		}, "未来日は入力できません")
-		.refine((val) => {
-			const d = new Date(val);
-			const oneYearAgo = new Date();
-			oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-			return d >= oneYearAgo;
-		}, "過去1年以内の日付を入力してください"),
+		// タイムゾーン依存を避けるため、Date オブジェクトの絶対時刻比較ではなく
+		// ローカル日付文字列 (YYYY-MM-DD) 同士の辞書順比較で判定する。
+		.refine((val) => val <= getLocalDateString(), "未来日は入力できません")
+		.refine((val) => val >= getOneYearAgoDateString(), "過去1年以内の日付を入力してください"),
 	hitRate: z
 		.number()
 		.int("整数を入力してください")
