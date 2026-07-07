@@ -4,21 +4,33 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ryusei/kyudo-dojo-hub/internal/model"
 )
 
-// Repo wraps a pgxpool for database access.
+// PgxDB is the subset of *pgxpool.Pool used by the repository. Depending on an
+// interface (rather than the concrete pool) lets tests inject a mock such as
+// pgxmock while production code passes a real *pgxpool.Pool.
+type PgxDB interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error)
+	Ping(ctx context.Context) error
+}
+
+// Repo wraps a database connection pool for data access.
 type Repo struct {
-	pool *pgxpool.Pool
+	pool PgxDB
 }
 
 // New creates a new Repo from a connection pool.
-func New(pool *pgxpool.Pool) *Repo {
+func New(pool PgxDB) *Repo {
 	return &Repo{pool: pool}
 }
 
@@ -414,29 +426,70 @@ func (r *Repo) GetReservation(ctx context.Context, id string) (*model.Reservatio
 }
 
 // CreateReservation inserts a new reservation after checking for conflicts.
-func (r *Repo) CreateReservation(ctx context.Context, res *model.Reservation) error {
+//
+// The overlap check (SELECT) and the INSERT run inside a single Serializable
+// transaction to close the TOCTOU window that would otherwise allow two
+// concurrent requests to both pass the check and double-book the same lane.
+// Under Serializable isolation PostgreSQL detects the read/write conflict and
+// aborts one transaction with a serialization failure (SQLSTATE 40001); that,
+// along with a unique-constraint violation (23505) on an identical start time,
+// is surfaced to the caller as ErrReservationConflict.
+func (r *Repo) CreateReservation(ctx context.Context, res *model.Reservation) (err error) {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return fmt.Errorf("begin reservation tx: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			// Best-effort rollback; the commit path already released the tx.
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
 	// Check for overlap: start_a < end_b AND start_b < end_a
 	var conflictCount int
-	err := r.pool.QueryRow(ctx,
+	if err = tx.QueryRow(ctx,
 		`SELECT COUNT(*) FROM reservations
 		 WHERE dojo_id = $1 AND lane_number = $2 AND date = $3
 		 AND start_time < $4 AND $5 < end_time`,
-		res.DojoID, res.LaneNumber, res.Date, res.EndTime, res.StartTime).Scan(&conflictCount)
-	if err != nil {
+		res.DojoID, res.LaneNumber, res.Date, res.EndTime, res.StartTime).Scan(&conflictCount); err != nil {
 		return fmt.Errorf("check reservation conflict: %w", err)
 	}
 	if conflictCount > 0 {
-		return ErrReservationConflict
+		err = ErrReservationConflict
+		return err
 	}
 
-	_, err = r.pool.Exec(ctx,
+	if _, err = tx.Exec(ctx,
 		`INSERT INTO reservations (id, dojo_id, user_id, lane_number, date, start_time, end_time, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		res.ID, res.DojoID, res.UserID, res.LaneNumber, res.Date, res.StartTime, res.EndTime, res.CreatedAt, res.UpdatedAt)
-	if err != nil {
+		res.ID, res.DojoID, res.UserID, res.LaneNumber, res.Date, res.StartTime, res.EndTime, res.CreatedAt, res.UpdatedAt); err != nil {
+		if isConflictError(err) {
+			err = ErrReservationConflict
+			return err
+		}
 		return fmt.Errorf("create reservation: %w", err)
 	}
+
+	if err = tx.Commit(ctx); err != nil {
+		if isConflictError(err) {
+			err = ErrReservationConflict
+			return err
+		}
+		return fmt.Errorf("commit reservation: %w", err)
+	}
 	return nil
+}
+
+// isConflictError reports whether err is a PostgreSQL error that, for reservation
+// creation, means a competing booking won the race: a unique-constraint violation
+// (23505) or a serialization failure (40001).
+func isConflictError(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505" || pgErr.Code == "40001"
+	}
+	return false
 }
 
 // DeleteReservation removes a reservation by ID.
@@ -546,11 +599,6 @@ func (r *Repo) ListReservationsByDojoAndDate(ctx context.Context, dojoID string,
 // Ping checks database connectivity.
 func (r *Repo) Ping(ctx context.Context) error {
 	return r.pool.Ping(ctx)
-}
-
-// Pool returns the underlying connection pool (for shutdown).
-func (r *Repo) Pool() *pgxpool.Pool {
-	return r.pool
 }
 
 // Now returns the current time (UTC).

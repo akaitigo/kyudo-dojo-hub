@@ -1,13 +1,15 @@
 // =============================================================================
-// Playwright 設定テンプレート
+// Playwright E2E 設定
 //
-// 使い方:
-//   1. baseURL をプロジェクトに合わせて変更
-//   2. webServer.command をプロジェクトの dev server コマンドに変更
-//   3. 必要に応じてブラウザ・ビューポート設定を調整
+// Vite 開発サーバー (strictPort: 5173) を webServer として自動起動し、
+// スモークテストを実行する。CI では GitHub Actions 上で同じ設定を使う。
 // =============================================================================
 
 import { defineConfig, devices } from "@playwright/test";
+
+// Vite の dev server ポート。vite.config.ts の server.port と一致させること。
+const PORT = 5173;
+const BASE_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
 	// テストディレクトリ
@@ -15,6 +17,9 @@ export default defineConfig({
 
 	// テスト実行の並列数
 	fullyParallel: true,
+
+	// CI では未コミットの .only を検出したら失敗させる
+	forbidOnly: !!process.env.CI,
 
 	// CI では retry しない、ローカルでは1回リトライ
 	retries: process.env.CI ? 0 : 1,
@@ -28,7 +33,7 @@ export default defineConfig({
 	// 共通設定
 	use: {
 		// dev server のURL
-		baseURL: "http://localhost:3000",
+		baseURL: BASE_URL,
 
 		// テスト失敗時にスクリーンショットを取得
 		screenshot: "only-on-failure",
@@ -57,7 +62,7 @@ export default defineConfig({
 	// dev server の自動起動
 	webServer: {
 		command: "npm run dev",
-		url: "http://localhost:3000",
+		url: BASE_URL,
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000,
 	},
