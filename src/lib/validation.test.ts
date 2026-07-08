@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getLocalDateString, getOneYearAgoDateString } from "./date-utils";
-import { practiceFormSchema } from "./validation";
+import { getPracticeFormDefaults, practiceFormSchema } from "./validation";
 
 describe("practiceFormSchema", () => {
 	it("有効な入力を受け付ける", () => {
@@ -140,5 +140,28 @@ describe("practiceFormSchema 日付バリデーション（タイムゾーン非
 		const twoYearsAgo = getLocalDateString(new Date("2024-04-05T05:00:00Z"));
 		const result = practiceFormSchema.safeParse({ ...base, date: twoYearsAgo });
 		expect(result.success).toBe(false);
+	});
+});
+
+describe("getPracticeFormDefaults", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("注入した日付を初期値に使う（テスト安定化）", () => {
+		const defaults = getPracticeFormDefaults("2026-04-01");
+		expect(defaults).toEqual({
+			date: "2026-04-01",
+			hitRate: 0,
+			arrowCount: 1,
+			notes: "",
+			instructorComment: "",
+		});
+	});
+
+	it("未指定時は現在のローカル日付を使う", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-04-05T05:00:00Z"));
+		expect(getPracticeFormDefaults().date).toBe(getLocalDateString());
 	});
 });

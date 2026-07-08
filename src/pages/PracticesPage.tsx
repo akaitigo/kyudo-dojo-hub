@@ -2,31 +2,50 @@ import { useCallback, useEffect, useState } from "react";
 import { HitRateChart } from "@/components/practice/HitRateChart";
 import { PracticeForm } from "@/components/practice/PracticeForm";
 import { PracticeList } from "@/components/practice/PracticeList";
-import { createPractice, getPractices } from "@/lib/api";
+import { createPractice, getPractices, getUsers } from "@/lib/api";
 import type { PracticeFormValues } from "@/lib/validation";
-import type { Practice } from "@/types/domain";
+import type { Practice, User } from "@/types/domain";
 
 /** 現在のモックユーザーID */
 const CURRENT_USER_ID = "user-001";
 
+const alertStyle = {
+	padding: "1rem",
+	marginBottom: "1.5rem",
+	backgroundColor: "#fef2f2",
+	border: "1px solid #fca5a5",
+	borderRadius: "8px",
+	color: "#991b1b",
+} as const;
+
 export function PracticesPage() {
 	const [practices, setPractices] = useState<readonly Practice[]>([]);
+	const [users, setUsers] = useState<readonly User[]>([]);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showForm, setShowForm] = useState(false);
+	const [loadError, setLoadError] = useState<string | null>(null);
+	const [submitError, setSubmitError] = useState<string | null>(null);
 
-	const loadPractices = useCallback(async () => {
-		const result = await getPractices(CURRENT_USER_ID);
-		if (result.success) {
-			setPractices(result.data);
+	const loadData = useCallback(async () => {
+		setLoadError(null);
+		const [practicesResult, usersResult] = await Promise.all([getPractices(CURRENT_USER_ID), getUsers()]);
+		if (!practicesResult.success) {
+			setLoadError(practicesResult.error.message);
+			return;
+		}
+		setPractices(practicesResult.data);
+		if (usersResult.success) {
+			setUsers(usersResult.data);
 		}
 	}, []);
 
 	useEffect(() => {
-		void loadPractices();
-	}, [loadPractices]);
+		void loadData();
+	}, [loadData]);
 
 	const handleSubmit = async (values: PracticeFormValues) => {
 		setIsSubmitting(true);
+		setSubmitError(null);
 		const result = await createPractice({
 			userId: CURRENT_USER_ID,
 			dojoId: "dojo-001",
@@ -36,8 +55,10 @@ export function PracticesPage() {
 
 		if (result.success) {
 			setShowForm(false);
-			await loadPractices();
+			await loadData();
+			return;
 		}
+		setSubmitError(result.error.message);
 	};
 
 	return (
@@ -67,9 +88,20 @@ export function PracticesPage() {
 				</button>
 			</div>
 
+			{loadError && (
+				<div role="alert" style={alertStyle}>
+					稽古記録の読み込みに失敗しました: {loadError}
+				</div>
+			)}
+
 			{showForm && (
 				<div style={{ marginBottom: "2rem" }}>
 					<h2>稽古を記録</h2>
+					{submitError && (
+						<div role="alert" style={alertStyle}>
+							{submitError}
+						</div>
+					)}
 					<PracticeForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
 				</div>
 			)}
@@ -81,7 +113,7 @@ export function PracticesPage() {
 
 			<section>
 				<h2>稽古履歴</h2>
-				<PracticeList practices={practices} />
+				<PracticeList practices={practices} users={users} />
 			</section>
 		</div>
 	);

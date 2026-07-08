@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getLocalDateString } from "@/lib/date-utils";
 
 /** 予約フォームのバリデーションスキーマ */
 export const reservationFormSchema = z.object({
@@ -8,6 +9,14 @@ export const reservationFormSchema = z.object({
 });
 
 export type ReservationFormValues = z.infer<typeof reservationFormSchema>;
+
+/**
+ * 予約フォームの初期値を返す。日付はテストで安定させられるよう注入可能。
+ * 未指定時のみ現在日付（ローカル）を用いる。
+ */
+export function getReservationFormDefaults(today: string = getLocalDateString()): ReservationFormValues {
+	return { date: today, startTime: "", laneNumber: 1 };
+}
 
 /** 営業時間内の1時間単位の時間帯を生成 */
 export function generateTimeSlots(openTime: string, closeTime: string): readonly string[] {

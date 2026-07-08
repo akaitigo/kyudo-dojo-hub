@@ -1,17 +1,23 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Resolver } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import { getLocalDateString } from "@/lib/date-utils";
-import { generateTimeSlots, type ReservationFormValues, reservationFormSchema } from "@/lib/reservation-validation";
+import {
+	generateTimeSlots,
+	getReservationFormDefaults,
+	type ReservationFormValues,
+	reservationFormSchema,
+} from "@/lib/reservation-validation";
 import type { Dojo } from "@/types/domain";
 
 interface ReservationFormProps {
 	readonly dojo: Dojo;
 	readonly onSubmit: (values: ReservationFormValues) => void;
 	readonly isSubmitting?: boolean;
+	/** 初期日付（YYYY-MM-DD）。テストで時刻を固定するために注入可能。省略時は本日。 */
+	readonly defaultDate?: string;
 }
 
-export function ReservationForm({ dojo, onSubmit, isSubmitting = false }: ReservationFormProps) {
+export function ReservationForm({ dojo, onSubmit, isSubmitting = false, defaultDate }: ReservationFormProps) {
 	const resolver: Resolver<ReservationFormValues> = zodResolver(reservationFormSchema);
 	const {
 		register,
@@ -19,11 +25,7 @@ export function ReservationForm({ dojo, onSubmit, isSubmitting = false }: Reserv
 		formState: { errors },
 	} = useForm<ReservationFormValues>({
 		resolver,
-		defaultValues: {
-			date: getLocalDateString(),
-			startTime: "",
-			laneNumber: 1,
-		},
+		defaultValues: getReservationFormDefaults(defaultDate),
 	});
 
 	const timeSlots = generateTimeSlots(dojo.openTime, dojo.closeTime);

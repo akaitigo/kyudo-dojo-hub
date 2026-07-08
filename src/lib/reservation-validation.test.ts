@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { generateTimeSlots, getEndTime, reservationFormSchema } from "./reservation-validation";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { getLocalDateString } from "./date-utils";
+import {
+	generateTimeSlots,
+	getEndTime,
+	getReservationFormDefaults,
+	reservationFormSchema,
+} from "./reservation-validation";
 
 describe("reservation-validation", () => {
 	describe("reservationFormSchema", () => {
@@ -50,6 +56,27 @@ describe("reservation-validation", () => {
 			expect(getEndTime("09:00")).toBe("10:00");
 			expect(getEndTime("14:00")).toBe("15:00");
 			expect(getEndTime("20:00")).toBe("21:00");
+		});
+	});
+
+	describe("getReservationFormDefaults", () => {
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it("注入した日付を初期値に使う（テスト安定化）", () => {
+			const defaults = getReservationFormDefaults("2026-04-01");
+			expect(defaults).toEqual({
+				date: "2026-04-01",
+				startTime: "",
+				laneNumber: 1,
+			});
+		});
+
+		it("未指定時は現在のローカル日付を使う", () => {
+			vi.useFakeTimers();
+			vi.setSystemTime(new Date("2026-04-05T05:00:00Z"));
+			expect(getReservationFormDefaults().date).toBe(getLocalDateString());
 		});
 	});
 });
