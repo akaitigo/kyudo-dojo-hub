@@ -21,10 +21,8 @@ func main() {
 		port = "8080"
 	}
 
-	allowOrigin := os.Getenv("CORS_ALLOW_ORIGIN")
-	if allowOrigin == "" {
-		allowOrigin = "http://localhost:5173"
-	}
+	// CORS_ORIGIN accepts a comma-separated list of allowed origins.
+	allowOrigins := middleware.ParseOrigins(os.Getenv("CORS_ORIGIN"))
 
 	s := store.New()
 	h := handler.New(s)
@@ -77,7 +75,7 @@ func main() {
 		}
 	})
 
-	corsHandler := middleware.CORS(allowOrigin)(mux)
+	corsHandler := middleware.CORS(allowOrigins)(mux)
 
 	srv := &http.Server{
 		Addr:              ":" + port,
@@ -95,6 +93,11 @@ func main() {
 		sig := <-sigCh
 		log.Printf("Received signal %v, shutting down...", sig)
 
+		// 10s graceful-shutdown budget: this matches Cloud Run's default
+		// SIGTERM-to-SIGKILL grace period, so waiting longer would be cut off by
+		// the platform anyway. It comfortably exceeds this API's request handling
+		// time (in-memory store, no external I/O), giving in-flight requests time
+		// to finish before connections are closed.
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 

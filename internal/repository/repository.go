@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -375,21 +376,25 @@ func (r *Repo) GetAnalysisByVideo(ctx context.Context, videoID string) (*model.A
 
 // ListReservations returns reservations with optional dojo and date filters.
 func (r *Repo) ListReservations(ctx context.Context, dojoID *string, date *string) ([]model.Reservation, error) {
-	query := `SELECT id, dojo_id, user_id, lane_number, date, start_time, end_time, created_at, updated_at FROM reservations WHERE 1=1`
-	args := []any{}
-	argIdx := 1
-
+	// Build the WHERE clause dynamically. Each placeholder number is derived
+	// from len(args) at the moment the condition is appended, so there is no
+	// separate index counter to keep in sync (removes the previous
+	// `_ = argIdx` workaround).
+	var conditions []string
+	var args []any
 	if dojoID != nil {
-		query += fmt.Sprintf(" AND dojo_id = $%d", argIdx)
 		args = append(args, *dojoID)
-		argIdx++
+		conditions = append(conditions, fmt.Sprintf("dojo_id = $%d", len(args)))
 	}
 	if date != nil {
-		query += fmt.Sprintf(" AND date = $%d", argIdx)
 		args = append(args, *date)
-		argIdx++
+		conditions = append(conditions, fmt.Sprintf("date = $%d", len(args)))
 	}
-	_ = argIdx // suppress unused warning
+
+	query := `SELECT id, dojo_id, user_id, lane_number, date, start_time, end_time, created_at, updated_at FROM reservations`
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
 	query += " ORDER BY date, start_time"
 
 	rows, err := r.pool.Query(ctx, query, args...)
