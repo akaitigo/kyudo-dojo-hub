@@ -162,6 +162,7 @@ export function DashboardPage() {
 								selectedDate={selectedDate}
 								onDateChange={setSelectedDate}
 								onDeleteReservation={handleDeleteReservation}
+								users={members}
 							/>
 						</section>
 					</>

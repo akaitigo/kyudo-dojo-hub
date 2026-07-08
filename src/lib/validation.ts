@@ -25,3 +25,17 @@ export const practiceFormSchema = z.object({
 });
 
 export type PracticeFormValues = z.infer<typeof practiceFormSchema>;
+
+/**
+ * 稽古フォームの初期値を返す。日付はテストで安定させられるよう注入可能。
+ * 未指定時のみ現在日付（ローカル）を用いる。
+ */
+export function getPracticeFormDefaults(today: string = getLocalDateString()): PracticeFormValues {
+	return {
+		date: today,
+		hitRate: 0,
+		arrowCount: 1,
+		notes: "",
+		instructorComment: "",
+	};
+}

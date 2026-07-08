@@ -6,7 +6,19 @@
  * 意図的な遅延（50-200ms）を追加し、非同期UIの動作確認を可能にする。
  */
 import { getLocalDateString } from "@/lib/date-utils";
-import type { Analysis, ApiResult, Dojo, ExamChecklist, Practice, Reservation, User, Video } from "@/types/domain";
+import type {
+	Analysis,
+	ApiResult,
+	Dojo,
+	ExamChecklist,
+	HassetsuPhase,
+	HassetsuScores,
+	Practice,
+	Reservation,
+	User,
+	Video,
+} from "@/types/domain";
+import { HASSETSU_PHASES } from "@/types/domain";
 import {
 	MOCK_ANALYSES,
 	MOCK_DOJOS,
@@ -228,6 +240,74 @@ export async function getAnalysisByVideo(videoId: string): Promise<ApiResult<Ana
 	await simulateLatency();
 	const analysis = analyses.find((a) => a.videoId === videoId);
 	return analysis ? success(analysis) : notFound("分析結果");
+}
+
+export interface AnalyzeVideoInput {
+	readonly videoId: string;
+	readonly userId: string;
+}
+
+/** シード文字列から決定的に 60〜90 のスコアを生成する（乱数不使用でテスト安定） */
+function seededScore(seed: string, salt: number): number {
+	let h = salt >>> 0;
+	for (let i = 0; i < seed.length; i++) {
+		h = (Math.imul(h, 31) + seed.charCodeAt(i)) >>> 0;
+	}
+	return 60 + (h % 31);
+}
+
+/** videoId から決定的に八節スコアを生成する */
+function generateScores(videoId: string): HassetsuScores {
+	const scores = {} as Record<HassetsuPhase, number>;
+	HASSETSU_PHASES.forEach((phase, idx) => {
+		scores[phase] = seededScore(videoId, idx + 1);
+	});
+	return scores;
+}
+
+/** 八節フェーズの標準的なタイムライン（秒） */
+const PHASE_TIMELINE: ReadonlyArray<{
+	readonly phase: HassetsuPhase;
+	readonly startTime: number;
+	readonly endTime: number;
+}> = [
+	{ phase: "ashibumi", startTime: 0, endTime: 3.5 },
+	{ phase: "dozukuri", startTime: 3.5, endTime: 7.0 },
+	{ phase: "yugamae", startTime: 7.0, endTime: 12.0 },
+	{ phase: "uchiokoshi", startTime: 12.0, endTime: 16.0 },
+	{ phase: "hikiwake", startTime: 16.0, endTime: 24.0 },
+	{ phase: "kai", startTime: 24.0, endTime: 30.0 },
+	{ phase: "hanare", startTime: 30.0, endTime: 31.0 },
+	{ phase: "zanshin", startTime: 31.0, endTime: 35.0 },
+];
+
+/**
+ * 動画の射形分析を実行する（モック）。
+ * 本番 API の POST /api/analyses/analyze に対応する。videoId から決定的に
+ * スコア・総合点を生成し、生成した分析結果をメモリ上のストアに追加する。
+ */
+export async function analyzeVideo(input: AnalyzeVideoInput): Promise<ApiResult<Analysis>> {
+	await simulateLatency();
+
+	const scores = generateScores(input.videoId);
+	const values = HASSETSU_PHASES.map((p) => scores[p]);
+	const overallScore = Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
+
+	const analysis: Analysis = {
+		id: `analysis-${generateId()}`,
+		videoId: input.videoId,
+		userId: input.userId,
+		scores,
+		phases: PHASE_TIMELINE.map((seg) => ({ ...seg })),
+		overallScore,
+		feedback:
+			overallScore >= 80
+				? "全体的に安定した射。会の伸びが良好。残心の意識をさらに高めるとより良くなる。"
+				: "会での安定感は良好。離れの瞬間の右肩の上がりに注意し、引分けでの左右均等な力配分を意識すること。",
+		createdAt: new Date().toISOString(),
+	};
+	analyses.push(analysis);
+	return success(analysis);
 }
 
 // ---------------------------------------------------------------------------

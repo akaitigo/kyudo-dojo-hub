@@ -1,6 +1,5 @@
-import { MOCK_USERS } from "@/lib/mock-data";
 import { generateTimeSlots } from "@/lib/reservation-validation";
-import type { Dojo, Reservation } from "@/types/domain";
+import type { Dojo, Reservation, User } from "@/types/domain";
 
 interface ReservationCalendarProps {
 	readonly dojo: Dojo;
@@ -8,10 +7,8 @@ interface ReservationCalendarProps {
 	readonly selectedDate: string;
 	readonly onDateChange: (date: string) => void;
 	readonly onDeleteReservation: (id: string) => void;
-}
-
-function getUserName(userId: string): string {
-	return MOCK_USERS.find((u) => u.id === userId)?.name ?? userId;
+	/** ユーザー名解決用のユーザー一覧（api.ts ファサード経由で取得したもの） */
+	readonly users: readonly User[];
 }
 
 export function ReservationCalendar({
@@ -20,7 +17,10 @@ export function ReservationCalendar({
 	selectedDate,
 	onDateChange,
 	onDeleteReservation,
+	users,
 }: ReservationCalendarProps) {
+	const resolveUserName = (userId: string): string => users.find((u) => u.id === userId)?.name ?? userId;
+
 	const timeSlots = generateTimeSlots(dojo.openTime, dojo.closeTime);
 	const lanes = Array.from({ length: dojo.targetLanes }, (_, i) => i + 1);
 
@@ -114,7 +114,7 @@ export function ReservationCalendar({
 										>
 											{reservation ? (
 												<div>
-													<div>{getUserName(reservation.userId)}</div>
+													<div>{resolveUserName(reservation.userId)}</div>
 													<button
 														type="button"
 														onClick={() => onDeleteReservation(reservation.id)}

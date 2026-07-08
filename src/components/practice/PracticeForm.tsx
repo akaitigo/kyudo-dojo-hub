@@ -1,15 +1,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Resolver } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import { getLocalDateString } from "@/lib/date-utils";
-import { type PracticeFormValues, practiceFormSchema } from "@/lib/validation";
+import { getPracticeFormDefaults, type PracticeFormValues, practiceFormSchema } from "@/lib/validation";
 
 interface PracticeFormProps {
 	readonly onSubmit: (values: PracticeFormValues) => void;
 	readonly isSubmitting?: boolean;
+	/** 初期日付（YYYY-MM-DD）。テストで時刻を固定するために注入可能。省略時は本日。 */
+	readonly defaultDate?: string;
 }
 
-export function PracticeForm({ onSubmit, isSubmitting = false }: PracticeFormProps) {
+export function PracticeForm({ onSubmit, isSubmitting = false, defaultDate }: PracticeFormProps) {
 	const resolver: Resolver<PracticeFormValues> = zodResolver(practiceFormSchema);
 	const {
 		register,
@@ -17,13 +18,7 @@ export function PracticeForm({ onSubmit, isSubmitting = false }: PracticeFormPro
 		formState: { errors },
 	} = useForm<PracticeFormValues>({
 		resolver,
-		defaultValues: {
-			date: getLocalDateString(),
-			hitRate: 0,
-			arrowCount: 1,
-			notes: "",
-			instructorComment: "",
-		},
+		defaultValues: getPracticeFormDefaults(defaultDate),
 	});
 
 	const fieldStyle = {
