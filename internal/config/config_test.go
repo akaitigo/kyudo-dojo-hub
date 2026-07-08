@@ -1,6 +1,7 @@
 package config
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -33,8 +34,8 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Port != 8080 {
 		t.Errorf("expected default port 8080, got %d", cfg.Port)
 	}
-	if cfg.CORSOrigin != "http://localhost:5173" {
-		t.Errorf("expected default CORS origin, got %s", cfg.CORSOrigin)
+	if !slices.Equal(cfg.CORSOrigins, []string{"http://localhost:5173"}) {
+		t.Errorf("expected default CORS origins, got %v", cfg.CORSOrigins)
 	}
 }
 
@@ -53,7 +54,46 @@ func TestLoad_CustomValues(t *testing.T) {
 	if cfg.DatabaseURL != "postgres://custom/db" {
 		t.Errorf("expected custom DATABASE_URL, got %s", cfg.DatabaseURL)
 	}
-	if cfg.CORSOrigin != "https://example.com" {
-		t.Errorf("expected custom CORS origin, got %s", cfg.CORSOrigin)
+	if !slices.Equal(cfg.CORSOrigins, []string{"https://example.com"}) {
+		t.Errorf("expected single custom CORS origin, got %v", cfg.CORSOrigins)
+	}
+}
+
+func TestLoad_MultipleCORSOrigins(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://localhost/test")
+	t.Setenv("CORS_ORIGIN", "http://localhost:5173, https://app.example.com ,https://admin.example.com")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := []string{"http://localhost:5173", "https://app.example.com", "https://admin.example.com"}
+	if !slices.Equal(cfg.CORSOrigins, want) {
+		t.Errorf("expected %v, got %v", want, cfg.CORSOrigins)
+	}
+}
+
+func TestParseCORSOrigins(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want []string
+	}{
+		{name: "empty falls back to default", raw: "", want: []string{defaultCORSOrigin}},
+		{name: "blanks fall back to default", raw: " ,  , ", want: []string{defaultCORSOrigin}},
+		{name: "single", raw: "https://a.example.com", want: []string{"https://a.example.com"}},
+		{
+			name: "multiple with spaces",
+			raw:  " https://a.example.com , https://b.example.com ",
+			want: []string{"https://a.example.com", "https://b.example.com"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseCORSOrigins(tt.raw)
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("parseCORSOrigins(%q) = %v, want %v", tt.raw, got, tt.want)
+			}
+		})
 	}
 }

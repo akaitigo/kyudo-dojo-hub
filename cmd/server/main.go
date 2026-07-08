@@ -85,6 +85,11 @@ func run(logger *slog.Logger) error {
 		}
 	}
 
+	// 10s graceful-shutdown budget: aligned with Cloud Run's default
+	// SIGTERM-to-SIGKILL grace period, so a longer wait would be cut off by the
+	// platform regardless. Requests here are single, short pgx queries against a
+	// connection pool with a 30s WriteTimeout ceiling, so 10s is ample for
+	// in-flight DB writes to commit before connections are drained.
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 
